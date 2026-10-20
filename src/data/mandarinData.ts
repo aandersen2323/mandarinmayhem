@@ -889,6 +889,196 @@ export const MANDARIN_QUESTIONS: MandarinQuestion[] = [
     correctIndex: 1,
     explanation: '零 (líng) means zero (0)!',
   },
+  // TIER 4: ADVANCED TACTICAL COMPOUNDS & MULTI-STEP MATH (HSK 4)
+  {
+    id: 'adv1',
+    hanzi: '锁定目标',
+    pinyin: 'suǒ dìng mù biāo',
+    english: 'Target Locked / Target Acquired',
+    category: 'combat',
+    difficulty: 4,
+    options: ['Missed Shot', 'Target Locked', 'Reload Weapon', 'Friendly Fire'],
+    correctIndex: 1,
+    explanation: '锁定 (lock onto) + 目标 (target / objective)!',
+  },
+  {
+    id: 'adv2',
+    hanzi: '能量超载',
+    pinyin: 'néng liàng chāo zǎi',
+    english: 'Energy Overload / Core Surge',
+    category: 'combat',
+    difficulty: 4,
+    options: ['Shield Depleted', 'Energy Overload', 'Speed Boost', 'Smoke Screen'],
+    correctIndex: 1,
+    explanation: '能量 (energy) + 超载 (overload / surplus)!',
+  },
+  {
+    id: 'adv3',
+    hanzi: '战略撤退',
+    pinyin: 'zhàn lüè chè tuì',
+    english: 'Strategic Retreat / Tactical Fallback',
+    category: 'combat',
+    difficulty: 4,
+    options: ['All-out Attack', 'Strategic Retreat', 'Drop Weapons', 'Open Vault'],
+    correctIndex: 1,
+    explanation: '战略 (strategy) + 撤退 (retreat / withdraw)!',
+  },
+  {
+    id: 'adv4',
+    hanzi: '隐形突袭',
+    pinyin: 'yǐn xíng tū xí',
+    english: 'Stealth Ambush / Camouflage Raid',
+    category: 'combat',
+    difficulty: 4,
+    options: ['Direct Defense', 'Heal Squad', 'Stealth Ambush', 'Signal Flare'],
+    correctIndex: 2,
+    explanation: '隐形 (invisible/stealth) + 突袭 (surprise raid)!',
+  },
+  {
+    id: 'adv5',
+    hanzi: '精准打击',
+    pinyin: 'jīng zhǔn dǎ jī',
+    english: 'Precision Strike / Critical Hit',
+    category: 'combat',
+    difficulty: 4,
+    options: ['Spread Blast', 'Precision Strike', 'Blind Fire', 'Shield Recharge'],
+    correctIndex: 1,
+    explanation: '精准 (pinpoint accuracy) + 打击 (strike/hit)!',
+  },
+  {
+    id: 'adv_m1',
+    hanzi: '三 乘 七 加 五 等于几？',
+    pinyin: 'sān chéng qī jiā wǔ děng yú jǐ?',
+    english: '3 × 7 + 5 = ?',
+    category: 'math',
+    difficulty: 4,
+    options: ['二十四 (24)', '二十六 (26)', '二十八 (28)', '三十 (30)'],
+    correctIndex: 1,
+    explanation: '3 × 7 = 21, 21 + 5 = 26 (二十六)!',
+  },
+  {
+    id: 'adv_m2',
+    hanzi: '一百二十 减 四十五 等于几？',
+    pinyin: 'yī bǎi èr shí jiǎn sì shí wǔ děng yú jǐ?',
+    english: '120 - 45 = ?',
+    category: 'math',
+    difficulty: 4,
+    options: ['六十五 (65)', '七十 (70)', '七十五 (75)', '八十 (80)'],
+    correctIndex: 2,
+    explanation: '120 - 45 = 75 (七十五)!',
+  },
+  {
+    id: 'adv_m3',
+    hanzi: '六十四 除以 八 加 九 等于几？',
+    pinyin: 'liù shí sì chú yǐ bā jiā jiǔ děng yú jǐ?',
+    english: '64 ÷ 8 + 9 = ?',
+    category: 'math',
+    difficulty: 4,
+    options: ['十五 (15)', '十六 (16)', '十七 (17)', '十八 (18)'],
+    correctIndex: 2,
+    explanation: '64 ÷ 8 = 8, 8 + 9 = 17 (十七)!',
+  },
+
+  // TIER 5: GRANDMASTER CHINESE IDIOMS (成语 CHÉNGYǓ) & RAPID ARITHMETIC (HSK 5)
+  {
+    id: 'idiom1',
+    hanzi: '百发百中',
+    pinyin: 'bǎi fā bǎi zhòng',
+    english: 'Every shot hits the mark / Flawless Marksmanship',
+    category: 'phrases',
+    difficulty: 5,
+    options: ['Missing every shot', 'Every shot hits the mark', 'Running out of ammo', 'Shooting randomly'],
+    correctIndex: 1,
+    explanation: '百发 (100 shots) 百中 (100 hits) - used to describe a legendary sniper!',
+  },
+  {
+    id: 'idiom2',
+    hanzi: '一石二鸟',
+    pinyin: 'yī shí èr niǎo',
+    english: 'Kill two birds with one stone / Double Elimination',
+    category: 'phrases',
+    difficulty: 5,
+    options: ['Miss two targets', 'Double Elimination (2 with 1)', 'Fly into storm', 'Capture one bird'],
+    correctIndex: 1,
+    explanation: '一石 (one stone) 二鸟 (two birds) - achieving two objectives with one action!',
+  },
+  {
+    id: 'idiom3',
+    hanzi: '破釜沉舟',
+    pinyin: 'pò fǔ chén zhōu',
+    english: 'Burn the boats / Decisive All-In Battle',
+    category: 'phrases',
+    difficulty: 5,
+    options: ['Retreat across river', 'Repair shields', 'Burn boats (All-in victory)', 'Wait for storm'],
+    correctIndex: 2,
+    explanation: 'Xiang Yu sank his boats and smashed cooking pots to leave no retreat, winning the battle!',
+  },
+  {
+    id: 'idiom4',
+    hanzi: '出奇制胜',
+    pinyin: 'chū qí zhì shèng',
+    english: 'Win by surprise tactical maneuvering',
+    category: 'phrases',
+    difficulty: 5,
+    options: ['Brute force charge', 'Win by tactical surprise', 'Surrender early', 'Camp in shelter'],
+    correctIndex: 1,
+    explanation: '出奇 (deploy surprise tactics) 制胜 (conquer victory) from Sun Tzu\'s Art of War!',
+  },
+  {
+    id: 'idiom5',
+    hanzi: '同舟共济',
+    pinyin: 'tóng zhōu gòng jì',
+    english: 'In the same boat / Ultimate Squad Cooperation',
+    category: 'phrases',
+    difficulty: 5,
+    options: ['Fight alone', 'Abandon teammates', 'Pull together as a squad', 'Sink the ship'],
+    correctIndex: 2,
+    explanation: 'Crossing the dangerous river in the same boat, working together to survive the storm!',
+  },
+  {
+    id: 'idiom6',
+    hanzi: '势如破竹',
+    pinyin: 'shì rú pò zhú',
+    english: 'Irresistible momentum / Smashing through defenses',
+    category: 'phrases',
+    difficulty: 5,
+    options: ['Getting stuck', 'Irresistible momentum', 'Breaking weapons', 'Hiding in trees'],
+    correctIndex: 1,
+    explanation: 'Like splitting bamboo - once the first knot splits, the rest divides with effortless speed!',
+  },
+  {
+    id: 'gm_m1',
+    hanzi: '七 乘 八 减 十六 等于几？',
+    pinyin: 'qī chéng bā jiǎn shí liù děng yú jǐ?',
+    english: '7 × 8 - 16 = ?',
+    category: 'math',
+    difficulty: 5,
+    options: ['三十六 (36)', '三十八 (38)', '四十 (40)', '四十二 (42)'],
+    correctIndex: 2,
+    explanation: '7 × 8 = 56, 56 - 16 = 40 (四十)!',
+  },
+  {
+    id: 'gm_m2',
+    hanzi: '二百五十 除以 五 等于几？',
+    pinyin: 'èr bǎi wǔ shí chú yǐ wǔ děng yú jǐ?',
+    english: '250 ÷ 5 = ?',
+    category: 'math',
+    difficulty: 5,
+    options: ['四十 (40)', '四十五 (45)', '五十 (50)', '五十五 (55)'],
+    correctIndex: 2,
+    explanation: '250 ÷ 5 = 50 (五十)!',
+  },
+  {
+    id: 'gm_m3',
+    hanzi: '九 乘 九 加 十九 等于几？',
+    pinyin: 'jiǔ chéng jiǔ jiā shí jiǔ děng yú jǐ?',
+    english: '9 × 9 + 19 = ?',
+    category: 'math',
+    difficulty: 5,
+    options: ['九十 (90)', '九十八 (98)', '一百 (100)', '一百零二 (102)'],
+    correctIndex: 2,
+    explanation: '9 × 9 = 81, 81 + 19 = 100 (一百)!',
+  },
 ];
 
 export const DEFAULT_SKINS: SkinItem[] = [
@@ -1350,3 +1540,150 @@ export const STORY_NODES: Record<string, StoryNode> = {
     ],
   },
 };
+
+
+export const MANDARIN_TIER_CONFIG: Record<
+  import('../types/game').MandarinTier,
+  {
+    tier: import('../types/game').MandarinTier;
+    title: string;
+    levelLabel: string;
+    hskLevel: string;
+    description: string;
+    color: string;
+    accentHex: string;
+    requiredConsecutiveToPromote: number;
+    requiredTotalCorrect: number;
+    bonusCoinsOnPromotion: number;
+  }
+> = {
+  1: {
+    tier: 1,
+    title: 'Tier 1: Initiate (基础初级)',
+    levelLabel: 'Initiate (初级)',
+    hskLevel: 'HSK 1',
+    description: 'Fundamental vocabulary, single characters, and basic single-digit arithmetic.',
+    color: 'text-emerald-400',
+    accentHex: '#10b981',
+    requiredConsecutiveToPromote: 4,
+    requiredTotalCorrect: 8,
+    bonusCoinsOnPromotion: 100,
+  },
+  2: {
+    tier: 2,
+    title: 'Tier 2: Operative (战斗进阶)',
+    levelLabel: 'Operative (进阶)',
+    hskLevel: 'HSK 2',
+    description: 'Essential combat compounds, 2-digit addition/subtraction, and multiplication.',
+    color: 'text-cyan-400',
+    accentHex: '#06b6d4',
+    requiredConsecutiveToPromote: 5,
+    requiredTotalCorrect: 16,
+    bonusCoinsOnPromotion: 150,
+  },
+  3: {
+    tier: 3,
+    title: 'Tier 3: Veteran (战术高级)',
+    levelLabel: 'Veteran (高级)',
+    hskLevel: 'HSK 3',
+    description: 'Battlefield squad callouts, division, counting units, and tactical commands.',
+    color: 'text-blue-400',
+    accentHex: '#3b82f6',
+    requiredConsecutiveToPromote: 6,
+    requiredTotalCorrect: 26,
+    bonusCoinsOnPromotion: 200,
+  },
+  4: {
+    tier: 4,
+    title: 'Tier 4: Master (大师精通)',
+    levelLabel: 'Master (精通)',
+    hskLevel: 'HSK 4',
+    description: 'Advanced tactical compounds, multi-step math operations, and complex sentence structures.',
+    color: 'text-purple-400',
+    accentHex: '#a855f7',
+    requiredConsecutiveToPromote: 7,
+    requiredTotalCorrect: 38,
+    bonusCoinsOnPromotion: 300,
+  },
+  5: {
+    tier: 5,
+    title: 'Tier 5: Grandmaster (宗师巅峰)',
+    levelLabel: 'Grandmaster (宗师)',
+    hskLevel: 'HSK 5+',
+    description: 'Elite four-character battle idioms (成语 chéngyǔ), rapid tactical calculus, and fluency.',
+    color: 'text-amber-400',
+    accentHex: '#f59e0b',
+    requiredConsecutiveToPromote: 8,
+    requiredTotalCorrect: 52,
+    bonusCoinsOnPromotion: 500,
+  },
+};
+
+export function getQuestionDifficulty(q: MandarinQuestion): import('../types/game').MandarinTier {
+  if (q.difficulty) return q.difficulty;
+  if (q.id.startsWith('idiom') || q.id.startsWith('gm_')) return 5;
+  if (q.id.startsWith('adv')) return 4;
+  if (
+    q.id.startsWith('sq') ||
+    q.id === 'm_calc4' ||
+    q.id === 'm_calc9' ||
+    q.id === 'm_calc12' ||
+    q.id === 'm_unit2' ||
+    q.id === 'm_calc7'
+  ) {
+    return 3;
+  }
+  if (
+    q.hanzi.length >= 2 ||
+    q.id.startsWith('c') ||
+    q.id.startsWith('a') ||
+    q.id.startsWith('m_calc') ||
+    q.id.startsWith('m_op')
+  ) {
+    return 2;
+  }
+  return 1;
+}
+
+export function getAdaptiveQuestionsForPlayer(
+  tier: import('../types/game').MandarinTier,
+  recentMistakes: string[] = []
+): MandarinQuestion[] {
+  // Annotate all questions with difficulty
+  const annotated = MANDARIN_QUESTIONS.map((q) => ({
+    ...q,
+    difficulty: getQuestionDifficulty(q),
+  }));
+
+  // Target tier questions
+  const currentTierQuestions = annotated.filter((q) => q.difficulty === tier);
+  // Supporting adjacent tier questions
+  const adjacentTier = Math.min(5, tier + 1) as import('../types/game').MandarinTier;
+  const adjacentQuestions = annotated.filter((q) => q.difficulty === adjacentTier);
+  const reviewTier = Math.max(1, tier - 1) as import('../types/game').MandarinTier;
+  const reviewQuestions = annotated.filter((q) => q.difficulty === reviewTier);
+
+  // Spaced repetition: any missed questions get placed at the front
+  const mistakeQuestions = annotated.filter((q) => recentMistakes.includes(q.id));
+
+  const shuffledCurrent = [...currentTierQuestions].sort(() => Math.random() - 0.5);
+  const shuffledAdjacent = [...adjacentQuestions].sort(() => Math.random() - 0.5);
+  const shuffledReview = [...reviewQuestions].sort(() => Math.random() - 0.5);
+
+  const combined = [
+    ...mistakeQuestions,
+    ...shuffledCurrent,
+    ...shuffledAdjacent.slice(0, 4),
+    ...shuffledReview.slice(0, 3),
+  ];
+
+  // Remove duplicates
+  const seen = new Set<string>();
+  const unique = combined.filter((q) => {
+    if (seen.has(q.id)) return false;
+    seen.add(q.id);
+    return true;
+  });
+
+  return unique.length >= 8 ? unique : annotated.sort(() => Math.random() - 0.5);
+}

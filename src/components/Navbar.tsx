@@ -91,8 +91,13 @@ export const Navbar: React.FC<NavbarProps> = ({
               {player.name.charAt(0).toUpperCase()}
             </div>
             <div className="text-left hidden sm:block">
-              <div className="text-xs font-bold leading-none text-white group-hover:text-cyan-300">
-                {player.name}
+              <div className="flex items-center gap-1.5 leading-none">
+                <span className="text-xs font-bold text-white group-hover:text-cyan-300">
+                  {player.name}
+                </span>
+                <span className="px-1.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-500/40 text-[9px] font-bold text-cyan-300">
+                  Tier {player.mandarinMastery?.tier || 1}
+                </span>
               </div>
               <div className="text-[9px] text-slate-400 leading-none mt-0.5">Switch Player ▾</div>
             </div>

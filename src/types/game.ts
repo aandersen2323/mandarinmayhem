@@ -2,12 +2,25 @@ export type GameView = 'arena' | 'multiplayer' | 'leaderboard' | 'story' | 'dojo
 
 export type QuestionCategory = 'combat' | 'school' | 'actions' | 'elements' | 'food' | 'phrases' | 'math';
 
+export type MandarinTier = 1 | 2 | 3 | 4 | 5;
+
+export interface MandarinMastery {
+  tier: MandarinTier;
+  tierName: string;
+  questionsAnswered: number;
+  correctAnswers: number;
+  consecutiveCorrect: number;
+  recentMistakes: string[];
+  masteryPoints: number;
+}
+
 export interface MandarinQuestion {
   id: string;
   hanzi: string;
   pinyin: string;
   english: string;
   category: QuestionCategory;
+  difficulty?: MandarinTier;
   options: string[];
   correctIndex: number;
   explanation?: string;
@@ -26,6 +39,7 @@ export interface PlayerProfile {
   completedStoryNodes: string[];
   soundEnabled: boolean;
   pinyinDefaultVisible: boolean;
+  mandarinMastery?: MandarinMastery;
 }
 
 export type SkinRarity = 'uncommon' | 'rare' | 'epic' | 'legendary';

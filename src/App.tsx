@@ -17,6 +17,7 @@ import { PlayerAccountsModal, getSavedAccounts, saveAllAccounts } from './compon
 const STORAGE_KEY_PLAYER = 'cybermandarin_player_v1';
 const STORAGE_KEY_CUSTOM_SKINS = 'cybermandarin_custom_skins_v1';
 const STORAGE_KEY_ACCOUNTS = 'cybermandarin_accounts_v1';
+const STORAGE_KEY_ACTIVE_ID = 'cybermandarin_active_account_id';
 
 export default function App() {
   const [currentView, setCurrentView] = useState<GameView>('arena');
@@ -24,20 +25,65 @@ export default function App() {
   const [isForgeOpen, setIsForgeOpen] = useState<boolean>(false);
   const [isAccountsOpen, setIsAccountsOpen] = useState<boolean>(false);
 
-  // Player state persisted in localStorage & accounts
+  const [activeAccountId, setActiveAccountId] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem(STORAGE_KEY_ACTIVE_ID) || 'acc_primary';
+    }
+    return 'acc_primary';
+  });
+
+  // Player state persisted in localStorage & accounts with individual progression
   const [player, setPlayer] = useState<PlayerProfile>(() => {
     if (typeof window !== 'undefined') {
+      const activeId = localStorage.getItem(STORAGE_KEY_ACTIVE_ID);
+      const rawAccounts = localStorage.getItem(STORAGE_KEY_ACCOUNTS);
+      if (rawAccounts && activeId) {
+        try {
+          const accounts: PlayerAccount[] = JSON.parse(rawAccounts);
+          const activeAcc = accounts.find((a) => a.id === activeId);
+          if (activeAcc && activeAcc.profile) {
+            const p = activeAcc.profile;
+            if (!p.mandarinMastery) {
+              p.mandarinMastery = {
+                tier: 1,
+                tierName: 'Tier 1: Initiate (基础初级 - HSK 1)',
+                questionsAnswered: 0,
+                correctAnswers: 0,
+                consecutiveCorrect: 0,
+                recentMistakes: [],
+                masteryPoints: 0,
+              };
+            }
+            return p;
+          }
+        } catch (e) {
+          console.warn('Failed to parse active account profile:', e);
+        }
+      }
+
       const saved = localStorage.getItem(STORAGE_KEY_PLAYER);
       if (saved) {
         try {
-          return JSON.parse(saved);
+          const p = JSON.parse(saved);
+          if (!p.mandarinMastery) {
+            p.mandarinMastery = {
+              tier: 1,
+              tierName: 'Tier 1: Initiate (基础初级 - HSK 1)',
+              questionsAnswered: 0,
+              correctAnswers: 0,
+              consecutiveCorrect: 0,
+              recentMistakes: [],
+              masteryPoints: 0,
+            };
+          }
+          return p;
         } catch (e) {
           console.warn('Failed to parse saved player profile:', e);
         }
       }
     }
     return {
-      name: 'CyberDragon10',
+      name: 'Austin',
       level: 1,
       xp: 0,
       maxXp: 100,
@@ -49,6 +95,15 @@ export default function App() {
       completedStoryNodes: [],
       soundEnabled: true,
       pinyinDefaultVisible: true,
+      mandarinMastery: {
+        tier: 1,
+        tierName: 'Tier 1: Initiate (基础初级 - HSK 1)',
+        questionsAnswered: 0,
+        correctAnswers: 0,
+        consecutiveCorrect: 0,
+        recentMistakes: [],
+        masteryPoints: 0,
+      },
     };
   });
 
@@ -72,15 +127,25 @@ export default function App() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_KEY_PLAYER, JSON.stringify(player));
+      localStorage.setItem(STORAGE_KEY_ACTIVE_ID, activeAccountId);
       // Sync into saved accounts array
       try {
         const raw = localStorage.getItem(STORAGE_KEY_ACCOUNTS);
         if (raw) {
           const accounts: PlayerAccount[] = JSON.parse(raw);
-          const idx = accounts.findIndex((a) => a.profile.name.toLowerCase() === player.name.toLowerCase());
+          const idx = accounts.findIndex((a) => a.id === activeAccountId || a.profile.name.toLowerCase() === player.name.toLowerCase());
           if (idx >= 0) {
             accounts[idx].profile = player;
             accounts[idx].lastPlayed = Date.now();
+            localStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(accounts));
+          } else {
+            accounts.push({
+              id: activeAccountId,
+              name: player.name,
+              avatarId: player.equippedSkinId,
+              lastPlayed: Date.now(),
+              profile: player,
+            });
             localStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(accounts));
           }
         }
@@ -89,7 +154,7 @@ export default function App() {
       }
     }
     sounds.setMuted(!player.soundEnabled);
-  }, [player]);
+  }, [player, activeAccountId]);
 
   const equippedSkin =
     allSkins.find((s) => s.id === player.equippedSkinId) || allSkins[0] || DEFAULT_SKINS[0];
@@ -125,7 +190,23 @@ export default function App() {
   };
 
   const handleSwitchPlayer = (account: PlayerAccount) => {
-    setPlayer(account.profile);
+    const prof = account.profile;
+    if (!prof.mandarinMastery) {
+      prof.mandarinMastery = {
+        tier: 1,
+        tierName: 'Tier 1: Initiate (基础初级 - HSK 1)',
+        questionsAnswered: 0,
+        correctAnswers: 0,
+        consecutiveCorrect: 0,
+        recentMistakes: [],
+        masteryPoints: 0,
+      };
+    }
+    setActiveAccountId(account.id);
+    setPlayer(prof);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(STORAGE_KEY_ACTIVE_ID, account.id);
+    }
     sounds.playVictory();
   };
 

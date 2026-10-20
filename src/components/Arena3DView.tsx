@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import * as THREE from 'three';
-import { PlayerProfile, SkinItem, PowerUpItem, MandarinQuestion } from '../types/game';
-import { MANDARIN_QUESTIONS, POWER_UPS } from '../data/mandarinData';
+import { PlayerProfile, SkinItem, PowerUpItem, MandarinQuestion, MandarinTier } from '../types/game';
+import { MANDARIN_QUESTIONS, POWER_UPS, MANDARIN_TIER_CONFIG, getAdaptiveQuestionsForPlayer, getQuestionDifficulty } from '../data/mandarinData';
 import { sounds, speakChinese } from '../utils/audio';
 
 interface Arena3DViewProps {
@@ -561,12 +561,26 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
   const lastShotTimeRef = useRef<number>(0);
   const mouseLookRef = useRef<{ yaw: number; pitch: number }>({ yaw: 0, pitch: 0 });
 
-  // Shuffle questions with high representation of Chinese Math & Combat vocabulary
-  const sessionQuestions = useMemo(() => {
-    return [...MANDARIN_QUESTIONS].sort(() => Math.random() - 0.5);
-  }, []);
+  // Adaptive Question Pool based on current player's Mandarin Mastery Tier
+  const playerTier: MandarinTier = player.mandarinMastery?.tier || 1;
+  const recentMistakes = player.mandarinMastery?.recentMistakes || [];
 
-  const currentQ: MandarinQuestion = sessionQuestions[questionIndex % sessionQuestions.length];
+  const [questionPool, setQuestionPool] = useState<MandarinQuestion[]>(() =>
+    getAdaptiveQuestionsForPlayer(playerTier, recentMistakes)
+  );
+
+  // When player advances their Mandarin Mastery Tier, refresh the question pool with harder content!
+  useEffect(() => {
+    setQuestionPool(
+      getAdaptiveQuestionsForPlayer(
+        player.mandarinMastery?.tier || 1,
+        player.mandarinMastery?.recentMistakes || []
+      )
+    );
+  }, [player.mandarinMastery?.tier]);
+
+  const currentQ: MandarinQuestion =
+    questionPool[questionIndex % Math.max(1, questionPool.length)] || MANDARIN_QUESTIONS[0];
   const currentQRef = useRef(currentQ);
   useEffect(() => {
     currentQRef.current = currentQ;
@@ -914,6 +928,8 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
 
     setSelectedAnswer(idx);
     const isCorrect = idx === currentQ.correctIndex;
+    const currentMasteryTier: MandarinTier = player.mandarinMastery?.tier || 1;
+    const tierCfg = MANDARIN_TIER_CONFIG[currentMasteryTier] || MANDARIN_TIER_CONFIG[1];
 
     if (isCorrect) {
       setAnswerState('correct');
@@ -928,6 +944,28 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
       // Shield replenish (+25)
       playerShieldRef.current = Math.min(100, playerShieldRef.current + 25);
       setPlayerShield(playerShieldRef.current);
+
+      const nextConsecutive = (player.mandarinMastery?.consecutiveCorrect || 0) + 1;
+      const nextTotalCorrect = (player.mandarinMastery?.correctAnswers || 0) + 1;
+      const nextTotalAnswered = (player.mandarinMastery?.questionsAnswered || 0) + 1;
+
+      // AUTOMATIC PROGRESSION: Check if player earned an Automatic Mandarin Progression Promotion!
+      const shouldPromoteMandarin =
+        currentMasteryTier < 5 &&
+        (nextConsecutive >= tierCfg.requiredConsecutiveToPromote ||
+          nextTotalCorrect >= tierCfg.requiredTotalCorrect);
+
+      let promotedTier = currentMasteryTier;
+      if (shouldPromoteMandarin) {
+        promotedTier = (currentMasteryTier + 1) as MandarinTier;
+        const nextTierCfg = MANDARIN_TIER_CONFIG[promotedTier];
+        sounds.playVictory();
+        addCombatTextRef.current(`🎓 MANDARIN PROMOTION! ${nextTierCfg.levelLabel.toUpperCase()}!`, true);
+        setFeedbackBanner({
+          text: `🎉 LEVEL UP IN CHINESE! ${player.name} promoted to ${nextTierCfg.title}! +${nextTierCfg.bonusCoinsOnPromotion} Bonus V-Coins! More advanced Chinese unlocked!`,
+          type: 'success',
+        });
+      }
 
       const currentW = weapons[activeWeaponIdx];
       const nextProgress = currentW.upgradeProgress + 1;
@@ -967,11 +1005,13 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
         );
 
         addCombatTextRef.current(`⭐ ${currentW.name} TIER ${nextTier}! ⭐`, true);
-        setFeedbackBanner({
-          text: `🎉 TACTICAL ASCENSION! ${currentW.name} forged to ${nextRarity.toUpperCase()} (Tier ${nextTier})! +25% Damage & Capacity!`,
-          type: 'success',
-        });
-      } else {
+        if (!shouldPromoteMandarin) {
+          setFeedbackBanner({
+            text: `🎉 TACTICAL ASCENSION! ${currentW.name} forged to ${nextRarity.toUpperCase()} (Tier ${nextTier})! +25% Damage & Capacity!`,
+            type: 'success',
+          });
+        }
+      } else if (!shouldPromoteMandarin) {
         sounds.playSuccess();
         setWeapons((prev) =>
           prev.map((w, wIdx) => {
@@ -993,11 +1033,22 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
         });
       }
 
+      // Update player profile with Mandarin Mastery progression & bonus coins
+      const bonusPromotionCoins = shouldPromoteMandarin ? MANDARIN_TIER_CONFIG[promotedTier].bonusCoinsOnPromotion : 0;
       onUpdatePlayerRef.current((prev) => ({
         ...prev,
-        xp: prev.xp + 40,
-        vCoins: prev.vCoins + coinsEarned,
+        xp: prev.xp + 40 + (shouldPromoteMandarin ? 120 : 0),
+        vCoins: prev.vCoins + coinsEarned + bonusPromotionCoins,
         highestStreak: Math.max(prev.highestStreak, streak + 1),
+        mandarinMastery: {
+          tier: promotedTier,
+          tierName: MANDARIN_TIER_CONFIG[promotedTier].title,
+          questionsAnswered: nextTotalAnswered,
+          correctAnswers: nextTotalCorrect,
+          consecutiveCorrect: shouldPromoteMandarin ? 0 : nextConsecutive,
+          recentMistakes: (prev.mandarinMastery?.recentMistakes || []).filter((id) => id !== currentQ.id),
+          masteryPoints: (prev.mandarinMastery?.masteryPoints || 0) + 20 + (shouldPromoteMandarin ? 80 : 0),
+        },
       }));
 
       setTimeout(() => {
@@ -1025,8 +1076,25 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
         })
       );
 
+      const nextTotalAnswered = (player.mandarinMastery?.questionsAnswered || 0) + 1;
+      onUpdatePlayerRef.current((prev) => ({
+        ...prev,
+        mandarinMastery: {
+          tier: prev.mandarinMastery?.tier || 1,
+          tierName: prev.mandarinMastery?.tierName || 'Tier 1: Initiate (基础初级 - HSK 1)',
+          questionsAnswered: nextTotalAnswered,
+          correctAnswers: prev.mandarinMastery?.correctAnswers || 0,
+          consecutiveCorrect: 0,
+          recentMistakes: [
+            ...(prev.mandarinMastery?.recentMistakes || []).filter((id) => id !== currentQ.id),
+            currentQ.id,
+          ].slice(-8),
+          masteryPoints: Math.max(0, (prev.mandarinMastery?.masteryPoints || 0) - 5),
+        },
+      }));
+
       setFeedbackBanner({
-        text: `加油！ Correct: ${currentQ.options[currentQ.correctIndex]} (${currentQ.pinyin}). -1 Upgrade Progress!`,
+        text: `加油！ Correct: ${currentQ.options[currentQ.correctIndex]} (${currentQ.pinyin}). Reviewing in spaced repetition!`,
         type: 'error',
       });
 
@@ -3052,6 +3120,61 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
           </div>
         </div>
 
+        {/* MANDARIN TIER PROGRESSION BANNER FOR CURRENT PLAYER */}
+        {(() => {
+          const tier = player.mandarinMastery?.tier || 1;
+          const cfg = MANDARIN_TIER_CONFIG[tier] || MANDARIN_TIER_CONFIG[1];
+          const consecutive = player.mandarinMastery?.consecutiveCorrect || 0;
+          const targetConsecutive = cfg.requiredConsecutiveToPromote;
+          const streakPercent = Math.min(100, Math.round((consecutive / targetConsecutive) * 100));
+          const totalQ = player.mandarinMastery?.questionsAnswered || 0;
+          const correctQ = player.mandarinMastery?.correctAnswers || 0;
+          const accuracy = totalQ > 0 ? Math.round((correctQ / totalQ) * 100) : 100;
+
+          return (
+            <div className="bg-slate-950/80 p-3 rounded-xl border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 mb-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-slate-900 border border-slate-700 text-xl">
+                  🎓
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black text-white">{player.name}'s Progression:</span>
+                    <span className={`text-xs font-black uppercase ${cfg.color}`}>{cfg.title}</span>
+                    <span className="px-1.5 py-0.2 rounded bg-slate-800 text-[10px] font-bold text-slate-300">
+                      {cfg.hskLevel}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-slate-400 mt-0.5">
+                    {cfg.description}
+                  </div>
+                </div>
+              </div>
+
+              {tier < 5 ? (
+                <div className="w-full md:w-64 space-y-1">
+                  <div className="flex justify-between items-center text-[10px] font-bold">
+                    <span className="text-slate-400">Next Tier Promotion:</span>
+                    <span className="text-amber-300 font-mono">
+                      {consecutive}/{targetConsecutive} Streak ({accuracy}% Acc)
+                    </span>
+                  </div>
+                  <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
+                    <div
+                      className="h-full bg-gradient-to-r from-cyan-400 to-amber-400 transition-all duration-300"
+                      style={{ width: `${streakPercent}%` }}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="px-3 py-1 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-black">
+                  👑 Grandmaster Tier Reached!
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
         {/* QUESTION DISPLAY: HANZI, PINYIN & CHINESE ARITHMETIC */}
         {currentQ && (
           <div className="space-y-3">
@@ -3075,8 +3198,8 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">
-                  {currentQ.category === 'math' ? '🧮 CHINESE MATH' : '🇨🇳 MANDARIN'}
+                <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-slate-800 text-cyan-300 border border-slate-700">
+                  {currentQ.difficulty ? `Tier ${currentQ.difficulty}` : 'Tier 1'} · {currentQ.category === 'math' ? '🧮 MATH' : '🇨🇳 MANDARIN'}
                 </span>
                 <button
                   onClick={() => setShowPinyin((p) => !p)}

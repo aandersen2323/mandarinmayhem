@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { X, UserPlus, Users, Check, Shield, Award, LogIn, Trash2 } from 'lucide-react';
+import { X, UserPlus, Users, Check, Shield, Award, LogIn, Trash2, GraduationCap, Sparkles } from 'lucide-react';
 import { PlayerAccount, PlayerProfile, SkinItem } from '../types/game';
+import { MANDARIN_TIER_CONFIG } from '../data/mandarinData';
 import { sounds } from '../utils/audio';
 
 interface PlayerAccountsModalProps {
@@ -12,6 +13,7 @@ interface PlayerAccountsModalProps {
 }
 
 const STORAGE_KEY_ACCOUNTS = 'cybermandarin_accounts_v1';
+const STORAGE_KEY_ACTIVE_ID = 'cybermandarin_active_account_id';
 
 export function getSavedAccounts(fallbackPlayer: PlayerProfile): PlayerAccount[] {
   if (typeof window === 'undefined') return [];
@@ -19,21 +21,51 @@ export function getSavedAccounts(fallbackPlayer: PlayerProfile): PlayerAccount[]
   if (raw) {
     try {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        // Ensure each account has mandarinMastery initialized
+        return parsed.map((acc: PlayerAccount) => {
+          if (!acc.profile.mandarinMastery) {
+            acc.profile.mandarinMastery = {
+              tier: 1,
+              tierName: 'Tier 1: Initiate (基础初级 - HSK 1)',
+              questionsAnswered: 0,
+              correctAnswers: 0,
+              consecutiveCorrect: 0,
+              recentMistakes: [],
+              masteryPoints: 0,
+            };
+          }
+          return acc;
+        });
+      }
     } catch (e) {
       console.warn('Failed to parse accounts:', e);
     }
   }
 
   // Default initial account from fallback player
+  const initialMastery = fallbackPlayer.mandarinMastery || {
+    tier: 1,
+    tierName: 'Tier 1: Initiate (基础初级 - HSK 1)',
+    questionsAnswered: 0,
+    correctAnswers: 0,
+    consecutiveCorrect: 0,
+    recentMistakes: [],
+    masteryPoints: 0,
+  };
+
   const initialAccount: PlayerAccount = {
     id: `acc_primary`,
     name: fallbackPlayer.name || 'Austin',
     avatarId: fallbackPlayer.equippedSkinId || 'skin_neon_ninja',
     lastPlayed: Date.now(),
-    profile: fallbackPlayer,
+    profile: {
+      ...fallbackPlayer,
+      mandarinMastery: initialMastery,
+    },
   };
   localStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify([initialAccount]));
+  localStorage.setItem(STORAGE_KEY_ACTIVE_ID, initialAccount.id);
   return [initialAccount];
 }
 
@@ -74,6 +106,15 @@ export const PlayerAccountsModal: React.FC<PlayerAccountsModalProps> = ({
       completedStoryNodes: [],
       soundEnabled: true,
       pinyinDefaultVisible: true,
+      mandarinMastery: {
+        tier: 1,
+        tierName: 'Tier 1: Initiate (基础初级 - HSK 1)',
+        questionsAnswered: 0,
+        correctAnswers: 0,
+        consecutiveCorrect: 0,
+        recentMistakes: [],
+        masteryPoints: 0,
+      },
     };
 
     const newAccount: PlayerAccount = {
@@ -87,6 +128,7 @@ export const PlayerAccountsModal: React.FC<PlayerAccountsModalProps> = ({
     const updated = [...accounts, newAccount];
     setAccounts(updated);
     saveAllAccounts(updated);
+    localStorage.setItem(STORAGE_KEY_ACTIVE_ID, newAccount.id);
     onSwitchPlayer(newAccount);
     sounds.playVictory();
     setIsCreating(false);
@@ -99,6 +141,7 @@ export const PlayerAccountsModal: React.FC<PlayerAccountsModalProps> = ({
     const updated = accounts.map((a) => (a.id === acc.id ? { ...a, lastPlayed: Date.now() } : a));
     setAccounts(updated);
     saveAllAccounts(updated);
+    localStorage.setItem(STORAGE_KEY_ACTIVE_ID, acc.id);
     onSwitchPlayer(acc);
     sounds.playSuccess();
     onClose();
@@ -106,7 +149,7 @@ export const PlayerAccountsModal: React.FC<PlayerAccountsModalProps> = ({
 
   const handleDeleteAccount = (accId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (accounts.length <= 1) return; // keep at least 1 account
+    if (accounts.length <= 1) return; // Keep at least 1 account
     const updated = accounts.filter((a) => a.id !== accId);
     setAccounts(updated);
     saveAllAccounts(updated);
@@ -124,10 +167,10 @@ export const PlayerAccountsModal: React.FC<PlayerAccountsModalProps> = ({
             </div>
             <div>
               <h2 className="text-lg font-bold text-white tracking-wide font-['Barlow_Condensed'] uppercase">
-                Player Login & Profile Switcher
+                Player Login & Individual Save System
               </h2>
               <span className="text-xs text-slate-400">
-                Save & return as each player with dedicated level, skins, and stats
+                Each player has their own account, inventory, arena progression & adaptive Chinese difficulty
               </span>
             </div>
           </div>
@@ -152,28 +195,33 @@ export const PlayerAccountsModal: React.FC<PlayerAccountsModalProps> = ({
                   className="px-3 py-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-300 text-xs font-bold flex items-center gap-1.5 transition-all"
                 >
                   <UserPlus size={14} />
-                  <span>New Player</span>
+                  <span>Create New Player</span>
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[380px] overflow-y-auto pr-1">
+              <div className="grid grid-cols-1 gap-3 max-h-[380px] overflow-y-auto pr-1">
                 {accounts.map((acc) => {
                   const isCurrent = acc.profile.name === currentPlayer.name;
                   const skin = allSkins.find((s) => s.id === acc.profile.equippedSkinId) || allSkins[0];
+                  const tier = acc.profile.mandarinMastery?.tier || 1;
+                  const tierCfg = MANDARIN_TIER_CONFIG[tier] || MANDARIN_TIER_CONFIG[1];
+                  const totalQ = acc.profile.mandarinMastery?.questionsAnswered || 0;
+                  const correctQ = acc.profile.mandarinMastery?.correctAnswers || 0;
+                  const accuracy = totalQ > 0 ? Math.round((correctQ / totalQ) * 100) : 100;
 
                   return (
                     <div
                       key={acc.id}
                       onClick={() => handleSelectAccount(acc)}
-                      className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between group ${
+                      className={`p-4 rounded-xl border transition-all cursor-pointer flex items-center justify-between group ${
                         isCurrent
                           ? 'bg-cyan-950/40 border-cyan-400 ring-1 ring-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.2)]'
                           : 'bg-slate-950 border-slate-800 hover:border-slate-700 hover:bg-slate-900/80'
                       }`}
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3.5">
                         <div
-                          className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white text-base shadow-sm shrink-0 border"
+                          className="w-12 h-12 rounded-xl flex items-center justify-center font-bold text-white text-lg shadow-sm shrink-0 border"
                           style={{
                             backgroundColor: `${skin?.accentColor || '#06B6D4'}22`,
                             borderColor: skin?.accentColor || '#06B6D4',
@@ -181,19 +229,34 @@ export const PlayerAccountsModal: React.FC<PlayerAccountsModalProps> = ({
                         >
                           {acc.name.charAt(0).toUpperCase()}
                         </div>
-                        <div>
-                          <div className="flex items-center gap-1.5">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
                             <span className="text-sm font-bold text-white">{acc.name}</span>
                             {isCurrent && (
-                              <span className="px-1.5 py-0.2 rounded bg-cyan-500 text-slate-950 text-[10px] font-black uppercase">
-                                Active
+                              <span className="px-2 py-0.5 rounded-full bg-cyan-500 text-slate-950 text-[10px] font-black uppercase">
+                                Active Player
                               </span>
                             )}
                           </div>
-                          <div className="text-xs text-slate-400 flex items-center gap-2 mt-0.5">
-                            <span>Level {acc.profile.level}</span>
+
+                          {/* Stats & Levels */}
+                          <div className="text-xs text-slate-400 flex flex-wrap items-center gap-2 font-medium">
+                            <span className="text-slate-200">Level {acc.profile.level}</span>
                             <span>·</span>
-                            <span className="text-amber-300 font-mono">{acc.profile.vCoins} V</span>
+                            <span className="text-amber-300 font-mono">🪙 {acc.profile.vCoins}</span>
+                            <span>·</span>
+                            <span className="text-emerald-400">🏆 {acc.profile.arenaVictories} Wins</span>
+                          </div>
+
+                          {/* Mandarin Progression Badge */}
+                          <div className="flex items-center gap-2 pt-0.5">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded border flex items-center gap-1 ${tierCfg.color} bg-slate-900/80 border-slate-700`}>
+                              <GraduationCap size={11} />
+                              <span>{tierCfg.title}</span>
+                            </span>
+                            <span className="text-[10px] text-slate-400">
+                              {accuracy}% accuracy ({correctQ} answered)
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -201,10 +264,11 @@ export const PlayerAccountsModal: React.FC<PlayerAccountsModalProps> = ({
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleSelectAccount(acc)}
-                          className="p-2 rounded-lg bg-slate-800 text-cyan-400 group-hover:bg-cyan-500 group-hover:text-slate-950 transition-colors"
+                          className="px-3 py-1.5 rounded-lg bg-slate-800 text-cyan-400 group-hover:bg-cyan-500 group-hover:text-slate-950 font-bold text-xs flex items-center gap-1 transition-colors"
                           title="Login as this player"
                         >
-                          <LogIn size={15} />
+                          <LogIn size={14} />
+                          <span>{isCurrent ? 'Play' : 'Login'}</span>
                         </button>
                         {accounts.length > 1 && !isCurrent && (
                           <button
@@ -236,7 +300,7 @@ export const PlayerAccountsModal: React.FC<PlayerAccountsModalProps> = ({
                   type="text"
                   value={newPlayerName}
                   onChange={(e) => setNewPlayerName(e.target.value)}
-                  placeholder="e.g. Austin, NinjaKai, DragonPro"
+                  placeholder="e.g. Austin, Kai, DragonPro, Sarah"
                   className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-400"
                   autoFocus
                 />
@@ -265,6 +329,16 @@ export const PlayerAccountsModal: React.FC<PlayerAccountsModalProps> = ({
                 </div>
               </div>
 
+              <div className="p-3 bg-slate-950/70 border border-slate-800 rounded-xl text-xs text-slate-400 space-y-1">
+                <div className="font-bold text-slate-300 flex items-center gap-1.5">
+                  <Sparkles size={13} className="text-cyan-400" />
+                  <span>Dedicated Player Progression</span>
+                </div>
+                <p>
+                  This new player will start at Level 1 with 150 V-Coins, starting pistol, and Tier 1 (HSK 1) Chinese. Their progress will save independently.
+                </p>
+              </div>
+
               <div className="flex items-center justify-end gap-3 pt-2">
                 <button
                   type="button"
@@ -280,7 +354,7 @@ export const PlayerAccountsModal: React.FC<PlayerAccountsModalProps> = ({
                   className="px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 text-slate-950 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-md active:scale-95"
                 >
                   <Check size={16} />
-                  <span>Start Playing as {newPlayerName.trim() || 'New Player'}</span>
+                  <span>Create & Login as {newPlayerName.trim() || 'New Player'}</span>
                 </button>
               </div>
             </div>

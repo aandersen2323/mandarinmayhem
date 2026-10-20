@@ -1,25 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { GameView, PlayerProfile, SkinItem } from './types/game';
+import { GameView, PlayerProfile, SkinItem, PlayerAccount } from './types/game';
 import { DEFAULT_SKINS } from './data/mandarinData';
 import { sounds } from './utils/audio';
 import { Navbar } from './components/Navbar';
 import { Arena3DView } from './components/Arena3DView';
 import { ArenaView } from './components/ArenaView';
+import { MultiplayerView } from './components/MultiplayerView';
+import { LeaderboardView } from './components/LeaderboardView';
 import { StoryView } from './components/StoryView';
 import { DojoView } from './components/DojoView';
 import { LockerView } from './components/LockerView';
 import { SquadCoachView } from './components/SquadCoachView';
 import { SkinForgeModal } from './components/SkinForgeModal';
+import { PlayerAccountsModal, getSavedAccounts, saveAllAccounts } from './components/PlayerAccountsModal';
 
 const STORAGE_KEY_PLAYER = 'cybermandarin_player_v1';
 const STORAGE_KEY_CUSTOM_SKINS = 'cybermandarin_custom_skins_v1';
+const STORAGE_KEY_ACCOUNTS = 'cybermandarin_accounts_v1';
 
 export default function App() {
   const [currentView, setCurrentView] = useState<GameView>('arena');
   const [arenaMode, setArenaMode] = useState<'3d' | '2d'>('3d');
   const [isForgeOpen, setIsForgeOpen] = useState<boolean>(false);
+  const [isAccountsOpen, setIsAccountsOpen] = useState<boolean>(false);
 
-  // Player state persisted in localStorage
+  // Player state persisted in localStorage & accounts
   const [player, setPlayer] = useState<PlayerProfile>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem(STORAGE_KEY_PLAYER);
@@ -36,7 +41,7 @@ export default function App() {
       level: 1,
       xp: 0,
       maxXp: 100,
-      vCoins: 120, // Starting bonus coins so he can test power-ups right away!
+      vCoins: 150,
       equippedSkinId: 'skin_neon_ninja',
       unlockedSkinIds: ['skin_neon_ninja'],
       highestStreak: 0,
@@ -47,7 +52,7 @@ export default function App() {
     };
   });
 
-  // Custom skins created via AI Skin Forge
+  // Custom skins created via Matrix Skin Studio
   const [allSkins, setAllSkins] = useState<SkinItem[]>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem(STORAGE_KEY_CUSTOM_SKINS);
@@ -63,10 +68,25 @@ export default function App() {
     return DEFAULT_SKINS;
   });
 
-  // Save player state changes
+  // Save player state changes & sync to active player account
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_KEY_PLAYER, JSON.stringify(player));
+      // Sync into saved accounts array
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_ACCOUNTS);
+        if (raw) {
+          const accounts: PlayerAccount[] = JSON.parse(raw);
+          const idx = accounts.findIndex((a) => a.profile.name.toLowerCase() === player.name.toLowerCase());
+          if (idx >= 0) {
+            accounts[idx].profile = player;
+            accounts[idx].lastPlayed = Date.now();
+            localStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(accounts));
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to sync account:', e);
+      }
     }
     sounds.setMuted(!player.soundEnabled);
   }, [player]);
@@ -102,6 +122,11 @@ export default function App() {
         maxXp: newMaxXp,
       };
     });
+  };
+
+  const handleSwitchPlayer = (account: PlayerAccount) => {
+    setPlayer(account.profile);
+    sounds.playVictory();
   };
 
   const handleSkinCreated = (newSkin: SkinItem) => {
@@ -150,7 +175,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-['Plus_Jakarta_Sans'] flex flex-col selection:bg-cyan-500 selection:text-slate-950">
-      {/* Strict 3-Zone Navigation Header */}
+      {/* Navigation Header */}
       <Navbar
         currentView={currentView}
         onSelectView={(view) => setCurrentView(view)}
@@ -158,6 +183,7 @@ export default function App() {
         equippedSkin={equippedSkin}
         onToggleSound={handleToggleSound}
         onOpenForge={() => setIsForgeOpen(true)}
+        onOpenAccounts={() => setIsAccountsOpen(true)}
       />
 
       {/* Main View Container */}
@@ -189,7 +215,7 @@ export default function App() {
                 </button>
               </div>
               <span className="text-[11px] text-slate-500 hidden sm:inline">
-                Move with WASD · Aim & Shoot Rivals with Mouse · Answer to Reload
+                Move with WASD · Aim & Shoot Rivals with Mouse · Press [R] or Answer to Reload
               </span>
             </div>
 
@@ -209,6 +235,22 @@ export default function App() {
               />
             )}
           </div>
+        )}
+
+        {currentView === 'multiplayer' && (
+          <MultiplayerView
+            player={player}
+            equippedSkin={equippedSkin}
+            onEarnCoins={handleEarnCoins}
+            onUpdatePlayer={handleUpdatePlayer}
+          />
+        )}
+
+        {currentView === 'leaderboard' && (
+          <LeaderboardView
+            player={player}
+            equippedSkin={equippedSkin}
+          />
         )}
 
         {currentView === 'story' && (
@@ -239,7 +281,7 @@ export default function App() {
         )}
       </main>
 
-      {/* AI Custom Skin Forge Modal */}
+      {/* Zero-Cost Custom Skin Studio Modal */}
       <SkinForgeModal
         isOpen={isForgeOpen}
         onClose={() => setIsForgeOpen(false)}
@@ -247,11 +289,20 @@ export default function App() {
         vCoins={player.vCoins}
       />
 
-      {/* Clean, Non-slop Minimalist Footer */}
+      {/* Multi-Player Profile & Login Switcher Modal */}
+      <PlayerAccountsModal
+        isOpen={isAccountsOpen}
+        onClose={() => setIsAccountsOpen(false)}
+        currentPlayer={player}
+        onSwitchPlayer={handleSwitchPlayer}
+        allSkins={allSkins}
+      />
+
+      {/* Footer */}
       <footer className="w-full border-t border-slate-900 bg-slate-950/80 py-4 px-6 text-center text-xs text-slate-500">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>CyberMandarin Royale · 4th Grade Immersion Language Arena</span>
-          <div className="flex items-center gap-4">
+          <span>CyberMandarin Royale · 4th Grade Immersion Language Arena · Zero API Cost</span>
+          <div className="flex flex-wrap items-center gap-4">
             <button
               onClick={() => setCurrentView('arena')}
               className="hover:text-cyan-400 transition-colors"
@@ -259,16 +310,34 @@ export default function App() {
               Battle Arena
             </button>
             <button
+              onClick={() => setCurrentView('multiplayer')}
+              className="hover:text-cyan-400 transition-colors text-cyan-300 font-bold"
+            >
+              Online PvP
+            </button>
+            <button
+              onClick={() => setCurrentView('leaderboard')}
+              className="hover:text-amber-400 transition-colors text-amber-300 font-bold"
+            >
+              Leaderboard
+            </button>
+            <button
+              onClick={() => setIsAccountsOpen(true)}
+              className="hover:text-cyan-400 transition-colors"
+            >
+              Switch Player
+            </button>
+            <button
               onClick={() => setCurrentView('coach')}
               className="hover:text-cyan-400 transition-colors"
             >
-              Tactical Coach
+              Squad Comms
             </button>
             <button
               onClick={() => setIsForgeOpen(true)}
               className="hover:text-cyan-400 transition-colors"
             >
-              Skin Forge
+              Skin Studio
             </button>
           </div>
         </div>

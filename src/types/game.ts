@@ -1,4 +1,4 @@
-export type GameView = 'arena' | 'story' | 'dojo' | 'locker' | 'forge' | 'coach';
+export type GameView = 'arena' | 'multiplayer' | 'leaderboard' | 'story' | 'dojo' | 'locker' | 'forge' | 'coach';
 
 export type QuestionCategory = 'combat' | 'school' | 'actions' | 'elements' | 'food' | 'phrases';
 
@@ -93,3 +93,66 @@ export interface ChatMessage {
 }
 
 export type CoachRole = 'sifu' | 'squadmate' | 'lightning';
+
+export interface PlayerAccount {
+  id: string;
+  name: string;
+  avatarId: string;
+  pin?: string;
+  lastPlayed: number;
+  profile: PlayerProfile;
+}
+
+export interface RemotePlayer {
+  id: string;
+  name: string;
+  level: number;
+  skinId: string;
+  accentColor: string;
+  x: number;
+  y: number;
+  z: number;
+  rotY: number;
+  hp: number;
+  shield: number;
+  kills: number;
+  isShooting: boolean;
+  activeWeaponName?: string;
+  lastActive: number;
+}
+
+export interface MultiplayerChatMessage {
+  id: string;
+  senderId: string;
+  senderName: string;
+  text: string;
+  hanzi?: string;
+  pinyin?: string;
+  timestamp: string;
+  isTacticalCallout?: boolean;
+}
+
+export interface MultiplayerRoom {
+  id: string;
+  name: string;
+  hostId: string;
+  gameMode: 'pvp_battle_royale' | 'mandarin_duel' | 'coop_survival';
+  maxPlayers: number;
+  players: Record<string, RemotePlayer>;
+  messages: MultiplayerChatMessage[];
+  status: 'lobby' | 'playing' | 'ended';
+  stormRadius: number;
+}
+
+export interface LeaderboardEntry {
+  id: string;
+  name: string;
+  level: number;
+  wins: number;
+  eliminations: number;
+  mandarinScore: number;
+  accuracy: number;
+  skinId: string;
+  accentColor: string;
+  rank?: number;
+}

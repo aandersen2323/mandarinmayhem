@@ -1,0 +1,6 @@
+{
+  "name": "CyberMandarin Royale",
+  "description": "Fortnite and Gimkit-inspired Mandarin learning game featuring action arenas, story adventures, skin rewards, and AI tactical coaching.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

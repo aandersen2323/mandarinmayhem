@@ -12,7 +12,7 @@ interface Arena3DViewProps {
 }
 
 export type WeaponRarity = 'common' | 'rare' | 'epic' | 'legendary' | 'mythic';
-export type WeaponId = 'rifle' | 'shotgun' | 'sniper' | 'rocket' | 'smg';
+export type WeaponId = 'pistol' | 'rifle' | 'shotgun' | 'sniper' | 'rocket';
 
 export interface WeaponSlot {
   id: WeaponId;
@@ -26,6 +26,7 @@ export interface WeaponSlot {
   maxAmmo: number;
   currentAmmo: number;
   isUnlocked: boolean;
+  unlockLocation: string;
   stars: number;
   bulletSpeed: number;
   bulletColor: number;
@@ -36,12 +37,17 @@ export interface WeaponSlot {
   tier: number;            // 1 to 5
 }
 
+export type EnemyType = 'drone' | 'heavy' | 'ninja' | 'boss';
+
 interface EnemyBot3D {
   id: string;
   name: string;
+  enemyType: EnemyType;
   group: THREE.Group;
-  leftLeg: THREE.Mesh;
-  rightLeg: THREE.Mesh;
+  leftLeg?: THREE.Mesh;
+  rightLeg?: THREE.Mesh;
+  spinningRing?: THREE.Group;
+  hoverProp?: THREE.Mesh;
   hp: number;
   maxHp: number;
   speed: number;
@@ -50,6 +56,7 @@ interface EnemyBot3D {
   strafeTimer: number;
   isBoss: boolean;
   walkCycle: number;
+  hoverHeight?: number;
 }
 
 interface LaserBullet3D {
@@ -67,17 +74,17 @@ interface ShieldPotionDrop {
   collected: boolean;
 }
 
-interface GoldCoinPickup3D {
+interface WorldPickup3D {
   group: THREE.Group;
   coinMesh: THREE.Mesh | THREE.Group;
   beaconMesh: THREE.Mesh;
   haloMesh: THREE.Mesh;
-  sparkles?: THREE.Mesh[];
   baseY: number;
   x: number;
   z: number;
   collected: boolean;
-  type: 'coin' | 'chest' | 'ammo' | 'slurp';
+  type: 'coin' | 'chest' | 'ammo' | 'slurp' | 'weapon_crate';
+  weaponIdToUnlock?: WeaponId;
 }
 
 interface ObstacleBox {
@@ -86,6 +93,7 @@ interface ObstacleBox {
   minZ: number;
   maxZ: number;
   height: number;
+  roofPlatform?: boolean;
 }
 
 interface RampCollider {
@@ -115,6 +123,7 @@ export interface WaveLevelConfig {
   subtitle: string;
   botCount: number;
   bossName: string;
+  bossType: EnemyType;
   bossHp: number;
   stormRadius: number;
   stormSeconds: number;
@@ -124,113 +133,183 @@ export interface WaveLevelConfig {
 export const WAVE_LEVELS: WaveLevelConfig[] = [
   {
     levelNumber: 1,
-    title: 'Level 1: Recon Patrol Incursion',
-    subtitle: 'Rival scouts have parachuted into the outer perimeter. Eliminate the squad!',
+    title: 'Level 1: Recon Sentry Incursion',
+    subtitle: 'Rival scout drones have parachuted into the outer perimeter. Eliminate the squad!',
     botCount: 4,
-    bossName: 'Scout Leader Alpha',
+    bossName: 'Alpha Scout Sentry',
+    bossType: 'drone',
     bossHp: 130,
-    stormRadius: 160,
-    stormSeconds: 45,
-    rewardCoins: 100,
+    stormRadius: 180,
+    stormSeconds: 50,
+    rewardCoins: 120,
   },
   {
     levelNumber: 2,
-    title: 'Level 2: Cyber Vanguard Assault',
-    subtitle: 'Armored vanguard bots with rapid plasma rifles are advancing from the south!',
-    botCount: 6,
-    bossName: 'Cyber Vanguard Mecha',
-    bossHp: 220,
-    stormRadius: 155,
-    stormSeconds: 45,
-    rewardCoins: 130,
+    title: 'Level 2: Drone Swarm Patrol',
+    subtitle: 'Hover drones and agile raiders are scanning the bamboo forest!',
+    botCount: 5,
+    bossName: 'Sky Striker Drone Ω',
+    bossType: 'drone',
+    bossHp: 180,
+    stormRadius: 175,
+    stormSeconds: 48,
+    rewardCoins: 140,
   },
   {
     levelNumber: 3,
-    title: 'Level 3: Urban Siege (High-Rise Assault)',
-    subtitle: 'Enemies have fortified the Tilted Apartment and shipping containers. Watch the high ground!',
-    botCount: 7,
-    bossName: 'Goliath Heavy Gunner',
-    bossHp: 300,
-    stormRadius: 150,
-    stormSeconds: 40,
+    title: 'Level 3: Cyber Vanguard Assault',
+    subtitle: 'Armored vanguard cyborgs with heavy pulse blasters are advancing from the south!',
+    botCount: 6,
+    bossName: 'Vanguard Heavy Cyborg',
+    bossType: 'heavy',
+    bossHp: 240,
+    stormRadius: 170,
+    stormSeconds: 45,
     rewardCoins: 160,
   },
   {
     levelNumber: 4,
-    title: 'Level 4: Armory Infiltration & Snipers',
-    subtitle: 'Rival snipers are posted on the Clocktower deck. Use ramps and cover!',
-    botCount: 8,
-    bossName: 'Phantom Sniper Overlord',
-    bossHp: 380,
-    stormRadius: 145,
-    stormSeconds: 40,
-    rewardCoins: 200,
+    title: 'Level 4: Urban High-Rise Siege',
+    subtitle: 'Enemies have fortified the Skyline Apartment balconies and ramps. Watch high ground!',
+    botCount: 7,
+    bossName: 'Apartment Siege Commander',
+    bossType: 'heavy',
+    bossHp: 310,
+    stormRadius: 165,
+    stormSeconds: 42,
+    rewardCoins: 180,
   },
   {
     levelNumber: 5,
-    title: 'Level 5: Mid-Game Titan Boss Battle',
-    subtitle: 'A colossal Titan Mecha Alpha has breached the island center! Storm is contracting!',
-    botCount: 9,
-    bossName: 'Titan Mecha Alpha',
-    bossHp: 480,
-    stormRadius: 135,
-    stormSeconds: 35,
-    rewardCoins: 250,
+    title: 'Level 5: Shadow Syndicate Shinobi',
+    subtitle: 'Stealth cyber ninjas with high-speed dash attacks are flanking through the shadows!',
+    botCount: 8,
+    bossName: 'Shadow Shinobi Kurogane',
+    bossType: 'ninja',
+    bossHp: 380,
+    stormRadius: 155,
+    stormSeconds: 40,
+    rewardCoins: 210,
   },
   {
     levelNumber: 6,
-    title: 'Level 6: Shadow Syndicate Strike',
-    subtitle: 'High-speed stealth cyber ronin are flanking through the forest foliage!',
-    botCount: 10,
-    bossName: 'Shadow Ronin Ω',
-    bossHp: 560,
-    stormRadius: 125,
-    stormSeconds: 35,
-    rewardCoins: 300,
+    title: 'Level 6: Power Substation Generator Breach',
+    subtitle: 'Rivals are attempting to siphon the central generator power coils! Defend the catwalks!',
+    botCount: 9,
+    bossName: 'Volt Dynamo Titan',
+    bossType: 'boss',
+    bossHp: 460,
+    stormRadius: 145,
+    stormSeconds: 38,
+    rewardCoins: 250,
   },
   {
     levelNumber: 7,
-    title: 'Level 7: Fortress Citadel Defense',
-    subtitle: 'Enemies are converging on all 4 island structures simultaneously. Hold the line!',
-    botCount: 11,
-    bossName: 'Overlord Dreadnought',
-    bossHp: 640,
-    stormRadius: 115,
-    stormSeconds: 30,
-    rewardCoins: 350,
+    title: 'Level 7: Tactical Armory Counter-Attack',
+    subtitle: 'Heavily armored troops have seized the military supply depot. Retake the weapon caches!',
+    botCount: 10,
+    bossName: 'Warlord Ironclad',
+    bossType: 'heavy',
+    bossHp: 540,
+    stormRadius: 135,
+    stormSeconds: 36,
+    rewardCoins: 290,
   },
   {
     levelNumber: 8,
-    title: 'Level 8: Cyber Warlord Battalion',
-    subtitle: 'Coordinated battalion crossfire! Upgrade your weapons with Mandarin questions to survive!',
-    botCount: 12,
-    bossName: 'Warlord Omega',
-    bossHp: 740,
-    stormRadius: 105,
-    stormSeconds: 30,
-    rewardCoins: 420,
+    title: 'Level 8: Container Yard Crossfire',
+    subtitle: 'Intense close-quarters combat among stacked shipping containers and sky cranes!',
+    botCount: 11,
+    bossName: 'Gantry Goliath',
+    bossType: 'boss',
+    bossHp: 620,
+    stormRadius: 125,
+    stormSeconds: 34,
+    rewardCoins: 330,
   },
   {
     levelNumber: 9,
-    title: 'Level 9: Storm Cataclysm (Close Quarters)',
-    subtitle: 'The storm has collapsed the island to 75m! Furious close-range warfare on the ramps!',
-    botCount: 13,
-    bossName: 'Cataclysm Behemoth',
-    bossHp: 880,
-    stormRadius: 85,
-    stormSeconds: 28,
-    rewardCoins: 500,
+    title: 'Level 9: Sky Sentry Aerial Swarm',
+    subtitle: 'Coordinated drone swarm with rapid plasma cannons. Keep moving and climb ramps!',
+    botCount: 12,
+    bossName: 'Overlord Sky Sentry',
+    bossType: 'drone',
+    bossHp: 700,
+    stormRadius: 115,
+    stormSeconds: 32,
+    rewardCoins: 380,
   },
   {
     levelNumber: 10,
-    title: 'Level 10: The Sovereign Grand Finale',
-    subtitle: 'The ultimate showdown! Defeat the Sovereign Dragon Mecha Ω to conquer Battle Island!',
+    title: 'Level 10: Sovereign Pagoda Defense',
+    subtitle: 'The Sovereign Dragon Mecha has landed atop the sacred Pagoda! Defend the realm!',
+    botCount: 13,
+    bossName: 'Dragon Mecha Patriarch',
+    bossType: 'boss',
+    bossHp: 800,
+    stormRadius: 105,
+    stormSeconds: 30,
+    rewardCoins: 450,
+  },
+  {
+    levelNumber: 11,
+    title: 'Level 11: Quantum Storm Surge',
+    subtitle: 'The storm has energized with electric pulses! Elite cyber assassins advance!',
+    botCount: 14,
+    bossName: 'Quantum Assassin Zero',
+    bossType: 'ninja',
+    bossHp: 900,
+    stormRadius: 95,
+    stormSeconds: 28,
+    rewardCoins: 520,
+  },
+  {
+    levelNumber: 12,
+    title: 'Level 12: Armored Dreadnought Battalion',
+    subtitle: 'Full battalion offensive! Use your upgraded mythic weapons and Chinese math mastery!',
     botCount: 15,
-    bossName: 'The Sovereign Dragon Mecha Ω',
-    bossHp: 1100,
-    stormRadius: 75,
+    bossName: 'Dreadnought Apex',
+    bossType: 'heavy',
+    bossHp: 1020,
+    stormRadius: 85,
+    stormSeconds: 26,
+    rewardCoins: 600,
+  },
+  {
+    levelNumber: 13,
+    title: 'Level 13: Neon Matrix Siege',
+    subtitle: 'Enemies storm all 6 tactical zones simultaneously. High-intensity multi-front warfare!',
+    botCount: 16,
+    bossName: 'Matrix Sovereign Core',
+    bossType: 'boss',
+    bossHp: 1150,
+    stormRadius: 80,
     stormSeconds: 25,
-    rewardCoins: 1000,
+    rewardCoins: 700,
+  },
+  {
+    levelNumber: 14,
+    title: 'Level 14: Cataclysm Overlord Final Gate',
+    subtitle: 'The penultimate gatekeeper! Extreme close-range combat on the elevated catwalks!',
+    botCount: 17,
+    bossName: 'Cataclysm Behemoth Ω',
+    bossType: 'boss',
+    bossHp: 1300,
+    stormRadius: 75,
+    stormSeconds: 24,
+    rewardCoins: 850,
+  },
+  {
+    levelNumber: 15,
+    title: 'Level 15: The Supreme Cyber Dragon Sovereign Ω',
+    subtitle: 'The ultimate climax! Conquer the Supreme Dragon Sovereign Ω to become Master of Battle Island!',
+    botCount: 18,
+    bossName: 'The Supreme Cyber Dragon Sovereign Ω',
+    bossType: 'boss',
+    bossHp: 1600,
+    stormRadius: 70,
+    stormSeconds: 22,
+    rewardCoins: 1500,
   },
 ];
 
@@ -242,104 +321,109 @@ const RARITY_COLORS: Record<WeaponRarity, { border: string; bg: string; text: st
   mythic: { border: 'border-rose-500', bg: 'bg-rose-950/80', text: 'text-rose-300', glow: '#f43f5e', hex: 0xf43f5e },
 };
 
-// BALANCED STARTING WEAPONS: Starts at Tier 1 (Common) with real progression!
+// PROGRESSION WEAPONS: START WITH ONE GUN (PISTOL), FIND OTHERS IN MAP CRATES!
 const INITIAL_WEAPONS: WeaponSlot[] = [
   {
-    id: 'rifle',
+    id: 'pistol',
     slotNum: 1,
-    name: 'Pulse Rifle',
-    hanziName: '能量步枪',
-    pinyinName: 'Néngliàng Bùqiāng',
+    name: 'Tactical Pulse Pistol',
+    hanziName: '基础脉冲手枪',
+    pinyinName: 'Jīchǔ Màichōng Shǒuqiāng',
     rarity: 'common',
-    damage: 24,
-    fireCooldownMs: 150,
-    maxAmmo: 25,
-    currentAmmo: 25,
-    isUnlocked: true,
+    damage: 28,
+    fireCooldownMs: 240,
+    maxAmmo: 16,
+    currentAmmo: 16,
+    isUnlocked: true, // STARTS UNLOCKED!
+    unlockLocation: 'Starting Arsenal',
     stars: 1,
-    bulletSpeed: 95,
+    bulletSpeed: 100,
     bulletColor: 0x38bdf8,
     upgradeProgress: 0,
     upgradeTarget: 3,
     tier: 1,
   },
   {
-    id: 'shotgun',
+    id: 'rifle',
     slotNum: 2,
-    name: 'Havoc Pump Shotgun',
-    hanziName: '重型散弹枪',
-    pinyinName: 'Zhòngxíng Sǎndànqiāng',
-    rarity: 'common',
-    damage: 60,
-    fireCooldownMs: 750,
-    maxAmmo: 4,
-    currentAmmo: 4,
-    isUnlocked: true,
-    stars: 1,
-    bulletSpeed: 80,
-    bulletColor: 0xf59e0b,
-    pellets: 5,
-    upgradeProgress: 0,
-    upgradeTarget: 3,
-    tier: 1,
-  },
-  {
-    id: 'smg',
-    slotNum: 3,
-    name: 'Rapid Cyber SMG',
-    hanziName: '极速冲锋枪',
-    pinyinName: 'Jísù Chōngfēngqiāng',
-    rarity: 'common',
-    damage: 15,
-    fireCooldownMs: 95,
-    maxAmmo: 28,
-    currentAmmo: 28,
-    isUnlocked: true,
-    stars: 1,
-    bulletSpeed: 105,
-    bulletColor: 0x22d3ee,
-    upgradeProgress: 0,
-    upgradeTarget: 3,
-    tier: 1,
-  },
-  {
-    id: 'sniper',
-    slotNum: 4,
-    name: 'Thermal Heavy Sniper',
-    hanziName: '重型狙击枪',
-    pinyinName: 'Zhòngxíng Jūjīqiāng',
+    name: 'Storm Assault Rifle',
+    hanziName: '风暴突击步枪',
+    pinyinName: 'Fēngbào Tūjī Bùqiāng',
     rarity: 'rare',
-    damage: 85,
-    fireCooldownMs: 1300,
-    maxAmmo: 3,
-    currentAmmo: 3,
-    isUnlocked: true,
+    damage: 32,
+    fireCooldownMs: 140,
+    maxAmmo: 30,
+    currentAmmo: 30,
+    isUnlocked: false, // FIND IN ARMORY!
+    unlockLocation: 'Armory Bunker Roof (军火库)',
     stars: 2,
-    bulletSpeed: 160,
-    bulletColor: 0xa855f7,
+    bulletSpeed: 110,
+    bulletColor: 0x3b82f6,
     upgradeProgress: 0,
     upgradeTarget: 4,
     tier: 2,
   },
   {
-    id: 'rocket',
-    slotNum: 5,
-    name: 'Anvil Rocket Launcher',
-    hanziName: '火箭筒',
-    pinyinName: 'Huǒjiàn Tǒng',
+    id: 'shotgun',
+    slotNum: 3,
+    name: 'Havoc Plasma Shotgun',
+    hanziName: '重型离子散弹枪',
+    pinyinName: 'Zhòngxíng Lízǐ Sǎndànqiāng',
+    rarity: 'rare',
+    damage: 75,
+    fireCooldownMs: 700,
+    maxAmmo: 6,
+    currentAmmo: 6,
+    isUnlocked: false, // FIND IN CONTAINER YARD!
+    unlockLocation: 'Shipping Container Hub (货运码头)',
+    stars: 2,
+    bulletSpeed: 85,
+    bulletColor: 0xf59e0b,
+    pellets: 6,
+    upgradeProgress: 0,
+    upgradeTarget: 4,
+    tier: 2,
+  },
+  {
+    id: 'sniper',
+    slotNum: 4,
+    name: 'Thermal Void Sniper',
+    hanziName: '虚空狙击枪',
+    pinyinName: 'Xūkōng Jūjīqiāng',
     rarity: 'epic',
-    damage: 130,
-    fireCooldownMs: 1800,
-    maxAmmo: 2,
-    currentAmmo: 2,
-    isUnlocked: true,
+    damage: 110,
+    fireCooldownMs: 1200,
+    maxAmmo: 4,
+    currentAmmo: 4,
+    isUnlocked: false, // FIND IN PAGODA BALCONY!
+    unlockLocation: 'Dragon Pagoda Balcony (龙之阁)',
     stars: 3,
-    bulletSpeed: 55,
-    bulletColor: 0xef4444,
-    isExplosive: true,
+    bulletSpeed: 170,
+    bulletColor: 0xa855f7,
     upgradeProgress: 0,
     upgradeTarget: 5,
     tier: 3,
+  },
+  {
+    id: 'rocket',
+    slotNum: 5,
+    name: 'Quantum Rocket Launcher',
+    hanziName: '量子火箭筒',
+    pinyinName: 'Liàngzǐ Huǒjiàn Tǒng',
+    rarity: 'legendary',
+    damage: 160,
+    fireCooldownMs: 1700,
+    maxAmmo: 3,
+    currentAmmo: 3,
+    isUnlocked: false, // FIND IN SUBSTATION CATWALK!
+    unlockLocation: 'Power Substation Skybridge (能量站)',
+    stars: 4,
+    bulletSpeed: 60,
+    bulletColor: 0xef4444,
+    isExplosive: true,
+    upgradeProgress: 0,
+    upgradeTarget: 6,
+    tier: 4,
   },
 ];
 
@@ -351,7 +435,7 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
 
-  // Progressive Danger Levels (1 to 10)
+  // Progressive Danger Levels (1 to 15)
   const [currentWave, setCurrentWave] = useState<number>(1);
   const [playerHp, setPlayerHp] = useState<number>(100);
   const [playerShield, setPlayerShield] = useState<number>(50);
@@ -362,12 +446,13 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
   const [isPointerLocked, setIsPointerLocked] = useState<boolean>(false);
   const [floatingTexts, setFloatingTexts] = useState<FloatingCombatText[]>([]);
   const [isReloading, setIsReloading] = useState<boolean>(false);
+  const [nearbyChestPrompt, setNearbyChestPrompt] = useState<string | null>(null);
 
   // Weapon Hotbar & Active Weapon
   const [weapons, setWeapons] = useState<WeaponSlot[]>(INITIAL_WEAPONS);
   const [activeWeaponIdx, setActiveWeaponIdx] = useState<number>(0);
 
-  // Mandarin Tactical Reload & Station State
+  // Mandarin & Chinese Math Answering State
   const [questionIndex, setQuestionIndex] = useState<number>(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [answerState, setAnswerState] = useState<'idle' | 'correct' | 'wrong'>('idle');
@@ -377,8 +462,8 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
   const [showRadicalHint, setShowRadicalHint] = useState<boolean>(false);
 
   // Battle Royale Storm Circle
-  const [stormRadius, setStormRadius] = useState<number>(160);
-  const [stormSeconds, setStormSeconds] = useState<number>(45);
+  const [stormRadius, setStormRadius] = useState<number>(180);
+  const [stormSeconds, setStormSeconds] = useState<number>(50);
   const [isStormFrozen, setIsStormFrozen] = useState<boolean>(false);
 
   // Gimkit In-Game Power-Up Shop
@@ -401,11 +486,15 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
   const enemiesRef = useRef<EnemyBot3D[]>([]);
   const bulletsRef = useRef<LaserBullet3D[]>([]);
   const potionDropsRef = useRef<ShieldPotionDrop[]>([]);
-  const goldPickupsRef = useRef<GoldCoinPickup3D[]>([]);
+  const worldPickupsRef = useRef<WorldPickup3D[]>([]);
   const obstaclesRef = useRef<ObstacleBox[]>([]);
   const rampsRef = useRef<RampCollider[]>([]);
   const spawnWaveRef = useRef<(wave: number) => void>(() => {});
   const lastStormTickRef = useRef<number>(0);
+
+  // Double Jump Mechanics
+  const jumpsUsedRef = useRef<number>(0);
+  const thrusterFlameMeshRef = useRef<THREE.Group | null>(null);
 
   // Player Limbs & Weapon Mount Refs
   const playerLimbsRef = useRef<{
@@ -413,11 +502,13 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
     rightLeg: THREE.Mesh;
     leftArmGroup: THREE.Group;
     rightArmGroup: THREE.Group;
+    torsoGroup: THREE.Group;
     weaponMount: THREE.Group;
     muzzleFlashMesh: THREE.Mesh;
+    thrusterFlames: THREE.Group;
   } | null>(null);
 
-  const stormRadiusRef = useRef(160);
+  const stormRadiusRef = useRef(180);
   const isStormFrozenRef = useRef(false);
   const isDefeatedRef = useRef(false);
   const isVictoryRef = useRef(false);
@@ -470,6 +561,7 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
   const lastShotTimeRef = useRef<number>(0);
   const mouseLookRef = useRef<{ yaw: number; pitch: number }>({ yaw: 0, pitch: 0 });
 
+  // Shuffle questions with high representation of Chinese Math & Combat vocabulary
   const sessionQuestions = useMemo(() => {
     return [...MANDARIN_QUESTIONS].sort(() => Math.random() - 0.5);
   }, []);
@@ -480,7 +572,7 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
     currentQRef.current = currentQ;
   }, [currentQ]);
 
-  // Auto-pronounce on question change
+  // Auto-pronounce Chinese words/math on question change
   useEffect(() => {
     if (player.soundEnabled && currentQ) {
       speakChinese(currentQ.hanzi);
@@ -548,7 +640,7 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
     addCombatTextRef.current = addCombatText;
   }, [addCombatText]);
 
-  // Procedural 3D Weapon Model Generator
+  // High-Fidelity 3D Procedural Weapon Models
   const buildWeaponMesh = useCallback((wId: WeaponId, rarity?: WeaponRarity): THREE.Group => {
     const group = new THREE.Group();
     const rConfig = RARITY_COLORS[rarity || 'common'];
@@ -558,11 +650,29 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
       metalness: 0.8,
       roughness: 0.25,
       emissive: rConfig.hex,
-      emissiveIntensity: 0.35,
+      emissiveIntensity: 0.45,
     });
     const gunMetalMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.95, roughness: 0.15 });
 
     switch (wId) {
+      case 'pistol': {
+        const slide = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.2, 0.75), gunDarkMat);
+        slide.position.set(0, 0.12, 0.2);
+        group.add(slide);
+        const grip = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.35, 0.16), gunAccentMat);
+        grip.rotation.x = -0.3;
+        grip.position.set(0, -0.12, -0.05);
+        group.add(grip);
+        const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.5, 12), gunMetalMat);
+        barrel.rotateX(Math.PI / 2);
+        barrel.position.set(0, 0.12, 0.45);
+        group.add(barrel);
+        const laserSight = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.2, 8), gunAccentMat);
+        laserSight.rotateX(Math.PI / 2);
+        laserSight.position.set(0, 0.03, 0.35);
+        group.add(laserSight);
+        break;
+      }
       case 'rifle': {
         const receiver = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.32, 1.3), gunDarkMat);
         group.add(receiver);
@@ -595,6 +705,9 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
         const pump = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.22, 0.45), gunAccentMat);
         pump.position.set(0, -0.06, 0.65);
         group.add(pump);
+        const stock = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.26, 0.45), gunDarkMat);
+        stock.position.set(0, -0.08, -0.6);
+        group.add(stock);
         break;
       }
       case 'sniper': {
@@ -608,6 +721,9 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
         scope.rotateX(Math.PI / 2);
         scope.position.set(0, 0.26, 0.1);
         group.add(scope);
+        const bipod = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.35, 0.06), gunDarkMat);
+        bipod.position.set(0, -0.15, 0.9);
+        group.add(bipod);
         break;
       }
       case 'rocket': {
@@ -618,18 +734,10 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
         const shieldPlate = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.48, 0.08), gunAccentMat);
         shieldPlate.position.set(0, 0.05, 0.7);
         group.add(shieldPlate);
-        break;
-      }
-      case 'smg': {
-        const body = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.26, 0.8), gunDarkMat);
-        group.add(body);
-        const shortBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.4, 12), gunMetalMat);
-        shortBarrel.rotateX(Math.PI / 2);
-        shortBarrel.position.set(0, 0.04, 0.5);
-        group.add(shortBarrel);
-        const mag = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.45, 0.16), gunAccentMat);
-        mag.position.set(0, -0.32, 0.1);
-        group.add(mag);
+        const exhaust = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.4, 12), gunAccentMat);
+        exhaust.rotateX(-Math.PI / 2);
+        exhaust.position.set(0, 0.05, -0.7);
+        group.add(exhaust);
         break;
       }
     }
@@ -640,6 +748,15 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
   // Switch Weapon Slot
   const handleSelectWeapon = useCallback((idx: number) => {
     if (idx < 0 || idx >= weaponsRef.current.length) return;
+    const targetW = weaponsRef.current[idx];
+    if (!targetW.isUnlocked) {
+      sounds.playError();
+      setFeedbackBanner({
+        text: `🔒 ${targetW.name} is LOCKED! Explore the island to find this weapon crate at: ${targetW.unlockLocation}!`,
+        type: 'error',
+      });
+      return;
+    }
     setActiveWeaponIdx(idx);
     sounds.playShield();
   }, []);
@@ -685,7 +802,7 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
       setIsReloading(false);
       sounds.playSuccess();
       addCombatTextRef.current(`MAGAZINE RELOADED!`, false);
-    }, 750);
+    }, 700);
   }, [activeWeaponIdx, isReloading]);
 
   const handleQuickReloadRef = useRef(handleQuickReload);
@@ -749,7 +866,7 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
     raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
     const targetPoint = raycaster.ray.origin
       .clone()
-      .add(raycaster.ray.direction.clone().multiplyScalar(90));
+      .add(raycaster.ray.direction.clone().multiplyScalar(95));
 
     const weaponOrigin = playerGroupRef.current.position.clone().add(new THREE.Vector3(0.5, 1.6, 0.8));
     const fireDirection = targetPoint.clone().sub(weaponOrigin).normalize();
@@ -758,9 +875,9 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
     for (let p = 0; p < pelletCount; p++) {
       const spreadDir = fireDirection.clone();
       if (pelletCount > 1) {
-        spreadDir.x += (Math.random() - 0.5) * 0.07;
-        spreadDir.y += (Math.random() - 0.5) * 0.07;
-        spreadDir.z += (Math.random() - 0.5) * 0.07;
+        spreadDir.x += (Math.random() - 0.5) * 0.08;
+        spreadDir.y += (Math.random() - 0.5) * 0.08;
+        spreadDir.z += (Math.random() - 0.5) * 0.08;
         spreadDir.normalize();
       }
 
@@ -791,7 +908,7 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
     shootPlayerLaserRef.current = shootPlayerLaser;
   }, [shootPlayerLaser]);
 
-  // MANDARIN QUESTION ANSWERING: EARNS MASTERY POINTS & FORGES UPGRADES
+  // MANDARIN & CHINESE MATH ANSWERING: EARNS MASTERY POINTS & FORGES UPGRADES
   const handleAnswerQuestion = (idx: number) => {
     if (answerState !== 'idle' || isVictory || isDefeated) return;
 
@@ -803,7 +920,7 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
 
       const baseMult = multiplierRemaining > 0 ? 2 : 1;
       const currentMult = Math.min(4, baseMult + Math.floor(streak / 3));
-      const coinsEarned = 25 * currentMult;
+      const coinsEarned = 30 * currentMult;
 
       setStreak((s) => s + 1);
       setMultiplierRemaining((m) => Math.max(0, m - 1));
@@ -828,16 +945,16 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
             : 'mythic';
 
         const nextTier = Math.min(5, currentW.tier + 1);
-        const nextTarget = currentW.upgradeTarget + 2; // Each tier requires more answers (3 -> 5 -> 7 -> 9)
+        const nextTarget = currentW.upgradeTarget + 2;
 
         setWeapons((prev) =>
           prev.map((w, wIdx) => {
             if (wIdx === activeWeaponIdx) {
               return {
                 ...w,
-                currentAmmo: Math.round(w.maxAmmo * 1.2),
-                maxAmmo: Math.round(w.maxAmmo * 1.2),
-                damage: Math.round(w.damage * 1.2),
+                currentAmmo: Math.round(w.maxAmmo * 1.25),
+                maxAmmo: Math.round(w.maxAmmo * 1.25),
+                damage: Math.round(w.damage * 1.25),
                 stars: Math.min(5, w.stars + 1),
                 rarity: nextRarity,
                 tier: nextTier,
@@ -851,7 +968,7 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
 
         addCombatTextRef.current(`⭐ ${currentW.name} TIER ${nextTier}! ⭐`, true);
         setFeedbackBanner({
-          text: `🎉 TACTICAL ASCENSION! ${currentW.name} forged to ${nextRarity.toUpperCase()} (Tier ${nextTier})! +20% Damage & Capacity!`,
+          text: `🎉 TACTICAL ASCENSION! ${currentW.name} forged to ${nextRarity.toUpperCase()} (Tier ${nextTier})! +25% Damage & Capacity!`,
           type: 'success',
         });
       } else {
@@ -878,7 +995,7 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
 
       onUpdatePlayerRef.current((prev) => ({
         ...prev,
-        xp: prev.xp + 35,
+        xp: prev.xp + 40,
         vCoins: prev.vCoins + coinsEarned,
         highestStreak: Math.max(prev.highestStreak, streak + 1),
       }));
@@ -895,7 +1012,7 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
       sounds.playError();
       setStreak(0);
 
-      // Wrong answer penalty: lose 1 upgrade progress point!
+      // Wrong answer penalty: lose 1 upgrade progress point
       setWeapons((prev) =>
         prev.map((w, wIdx) => {
           if (wIdx === activeWeaponIdx) {
@@ -920,11 +1037,11 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
     }
   };
 
-  // Gimkit In-Game Power-Up Shop (Rebalanced prices)
+  // Gimkit In-Game Power-Up Shop
   const handleBuyCombatPowerUp = (pu: PowerUpItem) => {
     if (player.vCoins < pu.cost) {
       sounds.playError();
-      setFeedbackBanner({ text: 'Not enough V-Coins! Answer Mandarin questions to earn coins!', type: 'error' });
+      setFeedbackBanner({ text: 'Not enough V-Coins! Answer Mandarin & Math questions to earn coins!', type: 'error' });
       return;
     }
 
@@ -978,11 +1095,11 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
 
     // 1. Scene & Atmosphere
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0a1122);
-    scene.fog = new THREE.FogExp2(0x0e172a, 0.0035);
+    scene.background = new THREE.Color(0x0a1128);
+    scene.fog = new THREE.FogExp2(0x0e172a, 0.0032);
     sceneRef.current = scene;
 
-    const camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 900);
+    const camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000);
     cameraRef.current = camera;
 
     // 2. High-Performance WebGL Renderer
@@ -992,72 +1109,84 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.1;
+    renderer.toneMappingExposure = 1.15;
     container.replaceChildren(renderer.domElement);
 
-    // 3. Cinematic Lighting
-    const hemiLight = new THREE.HemisphereLight(0x93c5fd, 0x1e293b, 0.7);
-    hemiLight.position.set(0, 80, 0);
+    // 3. Cinematic Studio & Outdoor Lighting
+    const hemiLight = new THREE.HemisphereLight(0x93c5fd, 0x1e293b, 0.75);
+    hemiLight.position.set(0, 90, 0);
     scene.add(hemiLight);
 
-    const sunLight = new THREE.DirectionalLight(0xffedd5, 1.4);
-    sunLight.position.set(60, 90, 50);
+    const sunLight = new THREE.DirectionalLight(0xffedd5, 1.45);
+    sunLight.position.set(70, 100, 60);
     sunLight.castShadow = true;
     sunLight.shadow.mapSize.width = 1024;
     sunLight.shadow.mapSize.height = 1024;
     sunLight.shadow.camera.near = 10;
-    sunLight.shadow.camera.far = 280;
-    sunLight.shadow.camera.left = -110;
-    sunLight.shadow.camera.right = 110;
-    sunLight.shadow.camera.top = 110;
-    sunLight.shadow.camera.bottom = -110;
+    sunLight.shadow.camera.far = 320;
+    sunLight.shadow.camera.left = -140;
+    sunLight.shadow.camera.right = 140;
+    sunLight.shadow.camera.top = 140;
+    sunLight.shadow.camera.bottom = -140;
     scene.add(sunLight);
 
-    // 4. Battle Royale Island Terrain
-    const islandRadius = 180;
-    const islandGeo = new THREE.CylinderGeometry(islandRadius, islandRadius + 12, 10, 64);
+    // 4. BIGGER & MORE REALISTIC BATTLE ROYALE ISLAND TERRAIN (Radius: 220)
+    const islandRadius = 220;
+    const islandGeo = new THREE.CylinderGeometry(islandRadius, islandRadius + 18, 12, 64);
     const islandMat = new THREE.MeshStandardMaterial({
-      color: 0x166534,
+      color: 0x14532d,
       roughness: 0.8,
       metalness: 0.1,
     });
     const island = new THREE.Mesh(islandGeo, islandMat);
-    island.position.y = -5;
+    island.position.y = -6;
     island.receiveShadow = true;
     scene.add(island);
 
+    // Island shore beach ring
+    const beachGeo = new THREE.RingGeometry(islandRadius - 12, islandRadius + 8, 48);
+    const beachMat = new THREE.MeshStandardMaterial({
+      color: 0xca8a04,
+      roughness: 0.9,
+      side: THREE.DoubleSide,
+    });
+    const beach = new THREE.Mesh(beachGeo, beachMat);
+    beach.rotateX(-Math.PI / 2);
+    beach.position.y = 0.05;
+    scene.add(beach);
+
     const ocean = new THREE.Mesh(
-      new THREE.PlaneGeometry(800, 800),
+      new THREE.PlaneGeometry(1200, 1200),
       new THREE.MeshStandardMaterial({
-        color: 0x0284c7,
-        roughness: 0.15,
-        metalness: 0.6,
+        color: 0x0369a1,
+        roughness: 0.12,
+        metalness: 0.65,
         transparent: true,
-        opacity: 0.85,
+        opacity: 0.88,
       })
     );
     ocean.rotateX(-Math.PI / 2);
-    ocean.position.y = -5.8;
+    ocean.position.y = -6.8;
     scene.add(ocean);
 
     // 5. 3D Purple Storm Cylinder
-    const stormGeo = new THREE.CylinderGeometry(160, 160, 100, 48, 1, true);
+    const stormGeo = new THREE.CylinderGeometry(180, 180, 110, 48, 1, true);
     const stormMat = new THREE.MeshBasicMaterial({
       color: 0xa855f7,
       transparent: true,
-      opacity: 0.35,
+      opacity: 0.32,
       side: THREE.DoubleSide,
     });
     const stormMesh = new THREE.Mesh(stormGeo, stormMat);
-    stormMesh.position.y = 50;
+    stormMesh.position.y = 55;
     scene.add(stormMesh);
     stormMeshRef.current = stormMesh;
 
-    // 6. BUILDINGS, CLIMBABLE RAMPS & PROPS
+    // 6. BUILDINGS, CLIMBABLE ACCESSIBLE RAMPS & PROPS
     const buildingGroup = new THREE.Group();
-    const brickMat = new THREE.MeshStandardMaterial({ color: 0x854d0e, roughness: 0.85 });
-    const concreteMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.8 });
-    const metalMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.8, roughness: 0.3 });
+    const brickMat = new THREE.MeshStandardMaterial({ color: 0x9a3412, roughness: 0.85 });
+    const concreteMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.75 });
+    const metalMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.85, roughness: 0.25 });
     const woodMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.85 });
     const blueMat = new THREE.MeshStandardMaterial({ color: 0x1d4ed8, metalness: 0.7, roughness: 0.4 });
     const redMat = new THREE.MeshStandardMaterial({ color: 0xb91c1c, metalness: 0.7, roughness: 0.4 });
@@ -1065,16 +1194,137 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
     const windowMat = new THREE.MeshStandardMaterial({
       color: 0x38bdf8,
       emissive: 0x0284c7,
-      emissiveIntensity: 0.4,
+      emissiveIntensity: 0.45,
       roughness: 0.1,
     });
+    const pagodaRedMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.45 });
+    const pagodaGoldMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.85, roughness: 0.25 });
 
     const obstacles: ObstacleBox[] = [];
     const ramps: RampCollider[] = [];
 
-    // BUILDING A: Tilted Towers Multi-Story Apartment (-42, 0, 32)
+    // HELPER: Create a rock-solid, verified climbable ramp with side railings
+    // Perfectly connects (x, startZ, 0) to (x, endZ, targetHeight) without collision snagging
+    const createZAlignedRamp = (
+      centerX: number,
+      width: number,
+      startZ: number,
+      endZ: number,
+      targetHeight: number
+    ) => {
+      const length = Math.abs(endZ - startZ);
+      const angle = Math.atan2(targetHeight, length);
+      const centerZ = (startZ + endZ) / 2;
+      const centerY = targetHeight / 2;
+      const hypot = Math.hypot(length, targetHeight);
+
+      // Ramp mesh
+      const rampGeo = new THREE.BoxGeometry(width, 0.4, hypot + 0.8);
+      // Direction: if endZ > startZ, slope rises in +Z; if endZ < startZ, slope rises in -Z
+      const rotX = endZ > startZ ? -angle : angle;
+      const rampMesh = new THREE.Mesh(rampGeo, woodMat);
+      rampMesh.position.set(centerX, centerY, centerZ);
+      rampMesh.rotation.x = rotX;
+      rampMesh.castShadow = true;
+      rampMesh.receiveShadow = true;
+      buildingGroup.add(rampMesh);
+
+      // Side guide railings for safety
+      const railGeo = new THREE.BoxGeometry(0.2, 0.6, hypot + 0.8);
+      const leftRail = new THREE.Mesh(railGeo, metalMat);
+      leftRail.position.set(centerX - width / 2, centerY + 0.3, centerZ);
+      leftRail.rotation.x = rotX;
+      buildingGroup.add(leftRail);
+
+      const rightRail = new THREE.Mesh(railGeo, metalMat);
+      rightRail.position.set(centerX + width / 2, centerY + 0.3, centerZ);
+      rightRail.rotation.x = rotX;
+      buildingGroup.add(rightRail);
+
+      // Register collision collider
+      const minZ = Math.min(startZ, endZ) - 0.5;
+      const maxZ = Math.max(startZ, endZ) + 0.5;
+      ramps.push({
+        minX: centerX - width / 2 - 0.4,
+        maxX: centerX + width / 2 + 0.4,
+        minZ,
+        maxZ,
+        axis: 'z',
+        startCoord: startZ,
+        endCoord: endZ,
+        baseHeight: 0,
+        topHeight: targetHeight,
+      });
+    };
+
+    // HELPER: Create an X-aligned climbable ramp
+    const createXAlignedRamp = (
+      centerZ: number,
+      width: number,
+      startX: number,
+      endX: number,
+      targetHeight: number
+    ) => {
+      const length = Math.abs(endX - startX);
+      const angle = Math.atan2(targetHeight, length);
+      const centerX = (startX + endX) / 2;
+      const centerY = targetHeight / 2;
+      const hypot = Math.hypot(length, targetHeight);
+
+      const rampGeo = new THREE.BoxGeometry(hypot + 0.8, 0.4, width);
+      const rotZ = endX > startX ? angle : -angle;
+      const rampMesh = new THREE.Mesh(rampGeo, woodMat);
+      rampMesh.position.set(centerX, centerY, centerZ);
+      rampMesh.rotation.z = rotZ;
+      rampMesh.castShadow = true;
+      rampMesh.receiveShadow = true;
+      buildingGroup.add(rampMesh);
+
+      const minX = Math.min(startX, endX) - 0.5;
+      const maxX = Math.max(startX, endX) + 0.5;
+      ramps.push({
+        minX,
+        maxX,
+        minZ: centerZ - width / 2 - 0.4,
+        maxZ: centerZ + width / 2 + 0.4,
+        axis: 'x',
+        startCoord: startX,
+        endCoord: endX,
+        baseHeight: 0,
+        topHeight: targetHeight,
+      });
+    };
+
+    // Helper: Holographic Chinese Signboard
+    const createChineseSign = (text: string, subText: string, width: number, height: number, color: string) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 160;
+      const ctx = canvas.getContext('2d')!;
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 0, 512, 160);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 8;
+      ctx.strokeRect(6, 6, 500, 148);
+      ctx.fillStyle = color;
+      ctx.font = 'bold 58px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(text, 256, 80);
+      ctx.font = 'bold 26px sans-serif';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(subText, 256, 128);
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      const mat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide });
+      return new THREE.Mesh(new THREE.PlaneGeometry(width, height), mat);
+    };
+
+    // ---------------------------------------------------------
+    // ZONE 1: TILTED SKYLINE APARTMENT TOWER (-48, 0, 36)
+    // ---------------------------------------------------------
     const aptGroup = new THREE.Group();
-    const aptMain = new THREE.Mesh(new THREE.BoxGeometry(20, 10, 18), brickMat);
+    const aptMain = new THREE.Mesh(new THREE.BoxGeometry(22, 10, 20), brickMat);
     aptMain.position.set(0, 5, 0);
     aptMain.castShadow = true;
     aptMain.receiveShadow = true;
@@ -1082,278 +1332,262 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
 
     for (let floor = 1; floor <= 2; floor++) {
       for (let w = -2; w <= 2; w++) {
-        const win = new THREE.Mesh(new THREE.BoxGeometry(1.6, 2.2, 0.2), windowMat);
-        win.position.set(w * 3.6, floor * 3.4, 9.1);
+        const win = new THREE.Mesh(new THREE.BoxGeometry(1.8, 2.2, 0.2), windowMat);
+        win.position.set(w * 4.0, floor * 3.4, 10.1);
         aptGroup.add(win);
         const winBack = win.clone();
-        winBack.position.z = -9.1;
+        winBack.position.z = -10.1;
         aptGroup.add(winBack);
       }
     }
 
-    const aptRoof = new THREE.Mesh(new THREE.BoxGeometry(20.4, 0.6, 18.4), concreteMat);
+    const aptRoof = new THREE.Mesh(new THREE.BoxGeometry(22.6, 0.6, 20.6), concreteMat);
     aptRoof.position.set(0, 10.3, 0);
     aptGroup.add(aptRoof);
 
-    const acUnit = new THREE.Mesh(new THREE.BoxGeometry(3.5, 2.2, 3.5), metalMat);
-    acUnit.position.set(-5, 11.4, -4);
+    // Helipad marking on roof
+    const helipad = new THREE.Mesh(
+      new THREE.RingGeometry(3.5, 4.2, 24),
+      new THREE.MeshBasicMaterial({ color: 0xf59e0b, side: THREE.DoubleSide })
+    );
+    helipad.rotateX(Math.PI / 2);
+    helipad.position.set(0, 10.65, 0);
+    aptGroup.add(helipad);
+
+    // HVAC & Water tower
+    const acUnit = new THREE.Mesh(new THREE.BoxGeometry(4.0, 2.4, 4.0), metalMat);
+    acUnit.position.set(-6, 11.5, -5);
     acUnit.castShadow = true;
     aptGroup.add(acUnit);
 
-    const waterTank = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 1.8, 3, 16), woodMat);
-    waterTank.position.set(5, 13, 4);
+    const waterTank = new THREE.Mesh(new THREE.CylinderGeometry(2.0, 2.0, 3.5, 16), woodMat);
+    waterTank.position.set(6, 12.2, 5);
     aptGroup.add(waterTank);
 
-    aptGroup.position.set(-42, 0, 32);
+    const aptSign = createChineseSign('天际公寓', 'SKYLINE SUITES', 10, 3.2, '#38bdf8');
+    aptSign.position.set(0, 8.8, 10.2);
+    aptGroup.add(aptSign);
+
+    aptGroup.position.set(-48, 0, 36);
     buildingGroup.add(aptGroup);
-    obstacles.push({ minX: -52, maxX: -32, minZ: 23, maxZ: 41, height: 10 });
+    obstacles.push({ minX: -59, maxX: -37, minZ: 26, maxZ: 46, height: 10, roofPlatform: true });
 
-    // Climbable Ramp to Apartment Roof
-    const aptRampGeo = new THREE.BoxGeometry(6, 0.4, 14.5);
-    aptRampGeo.rotateX(Math.atan2(10, 13));
-    const aptRamp = new THREE.Mesh(aptRampGeo, woodMat);
-    aptRamp.position.set(-42, 5.0, 16.5);
-    aptRamp.castShadow = true;
-    aptRamp.receiveShadow = true;
-    buildingGroup.add(aptRamp);
+    // Wide, perfectly accessible ramp to Apartment Roof
+    createZAlignedRamp(-48, 6.5, 12, 26, 10.0);
 
-    ramps.push({
-      minX: -46,
-      maxX: -38,
-      minZ: 9.5,
-      maxZ: 23.5,
-      axis: 'z',
-      startCoord: 10.0,
-      endCoord: 23.0,
-      baseHeight: 0,
-      topHeight: 10,
-    });
+    // ---------------------------------------------------------
+    // ZONE 2: NEOPAGODA DRAGON CITADEL (-40, 0, -36)
+    // ---------------------------------------------------------
+    const pagodaGroup = new THREE.Group();
+    const pagodaBase = new THREE.Mesh(new THREE.BoxGeometry(18, 12, 18), pagodaRedMat);
+    pagodaBase.position.set(0, 6, 0);
+    pagodaBase.castShadow = true;
+    pagodaGroup.add(pagodaBase);
 
-    // BUILDING B: Clocktower Citadel (-36, 0, -30)
-    const towerGroup = new THREE.Group();
-    const towerBody = new THREE.Mesh(new THREE.BoxGeometry(16, 12, 16), concreteMat);
-    towerBody.position.set(0, 6, 0);
-    towerBody.castShadow = true;
-    towerBody.receiveShadow = true;
-    towerGroup.add(towerBody);
+    // Curved Traditional Eaves
+    const eave1 = new THREE.Mesh(new THREE.BoxGeometry(22, 1.2, 22), pagodaGoldMat);
+    eave1.position.set(0, 12.6, 0);
+    pagodaGroup.add(eave1);
 
-    for (let r = 0; r < 4; r++) {
-      const clockMesh = new THREE.Mesh(
-        new THREE.CylinderGeometry(2.2, 2.2, 0.3, 24),
-        new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 })
-      );
-      clockMesh.rotateX(Math.PI / 2);
-      clockMesh.rotateZ(r * (Math.PI / 2));
-      const dist = 8.15;
-      if (r === 0) clockMesh.position.set(0, 8.5, dist);
-      if (r === 1) clockMesh.position.set(dist, 8.5, 0);
-      if (r === 2) clockMesh.position.set(0, 8.5, -dist);
-      if (r === 3) clockMesh.position.set(-dist, 8.5, 0);
-      towerGroup.add(clockMesh);
-    }
+    const pagodaTopDeck = new THREE.Mesh(new THREE.BoxGeometry(14, 6, 14), concreteMat);
+    pagodaTopDeck.position.set(0, 15.6, 0);
+    pagodaGroup.add(pagodaTopDeck);
 
-    const battlement = new THREE.Mesh(new THREE.BoxGeometry(17, 1.5, 17), brickMat);
-    battlement.position.set(0, 12.5, 0);
-    towerGroup.add(battlement);
+    const pagodaTopRoof = new THREE.Mesh(new THREE.ConeGeometry(12, 4.5, 4), pagodaGoldMat);
+    pagodaTopRoof.position.set(0, 20.8, 0);
+    pagodaTopRoof.rotateY(Math.PI / 4);
+    pagodaGroup.add(pagodaTopRoof);
 
-    towerGroup.position.set(-36, 0, -30);
-    buildingGroup.add(towerGroup);
-    obstacles.push({ minX: -44, maxX: -28, minZ: -38, maxZ: -22, height: 12 });
+    const pagodaSign = createChineseSign('龙之阁', 'DRAGON CITADEL', 9, 3, '#f59e0b');
+    pagodaSign.position.set(0, 10, 9.15);
+    pagodaGroup.add(pagodaSign);
 
-    // Ramp to Clocktower Deck
-    const towerRampGeo = new THREE.BoxGeometry(14, 0.4, 6);
-    towerRampGeo.rotateZ(-Math.atan2(12, 13));
-    const towerRamp = new THREE.Mesh(towerRampGeo, woodMat);
-    towerRamp.position.set(-21.5, 6.0, -30);
-    towerRamp.castShadow = true;
-    towerRamp.receiveShadow = true;
-    buildingGroup.add(towerRamp);
+    pagodaGroup.position.set(-40, 0, -36);
+    buildingGroup.add(pagodaGroup);
+    obstacles.push({ minX: -49, maxX: -31, minZ: -45, maxZ: -27, height: 12, roofPlatform: true });
 
-    ramps.push({
-      minX: -28.5,
-      maxX: -14.5,
-      minZ: -34,
-      maxZ: -26,
-      axis: 'x',
-      startCoord: -15,
-      endCoord: -28,
-      baseHeight: 0,
-      topHeight: 12,
-    });
+    // Smooth climbable ramp from East ground to Pagoda Balcony
+    createXAlignedRamp(-36, 6.5, -16, -31, 12.0);
 
-    // BUILDING C: Red Dog Tactical Armory & Gas Station (38, 0, 20)
+    // ---------------------------------------------------------
+    // ZONE 3: TACTICAL ARMORY & VEHICLE DEPOT (44, 0, 24)
+    // ---------------------------------------------------------
     const armoryGroup = new THREE.Group();
-    const garageBody = new THREE.Mesh(new THREE.BoxGeometry(18, 6.5, 16), metalMat);
-    garageBody.position.set(0, 3.25, 0);
-    garageBody.castShadow = true;
-    garageBody.receiveShadow = true;
-    armoryGroup.add(garageBody);
+    const armoryMain = new THREE.Mesh(new THREE.BoxGeometry(20, 6.5, 18), metalMat);
+    armoryMain.position.set(0, 3.25, 0);
+    armoryMain.castShadow = true;
+    armoryGroup.add(armoryMain);
 
-    const canopyRoof = new THREE.Mesh(new THREE.BoxGeometry(16, 0.8, 10), redMat);
-    canopyRoof.position.set(0, 5.5, 13);
-    armoryGroup.add(canopyRoof);
+    const armoryCanopy = new THREE.Mesh(new THREE.BoxGeometry(18, 0.8, 12), redMat);
+    armoryCanopy.position.set(0, 5.8, 14);
+    armoryGroup.add(armoryCanopy);
 
-    armoryGroup.position.set(38, 0, 20);
+    const armorySign = createChineseSign('军火库', 'TACTICAL ARMORY', 10, 3.2, '#ef4444');
+    armorySign.position.set(0, 5.0, 9.15);
+    armoryGroup.add(armorySign);
+
+    armoryGroup.position.set(44, 0, 24);
     buildingGroup.add(armoryGroup);
-    obstacles.push({ minX: 29, maxX: 47, minZ: 12, maxZ: 28, height: 6.5 });
+    obstacles.push({ minX: 34, maxX: 54, minZ: 15, maxZ: 33, height: 6.5, roofPlatform: true });
 
-    const armoryRampGeo = new THREE.BoxGeometry(6, 0.4, 9.5);
-    armoryRampGeo.rotateX(-Math.atan2(6.5, 8.5));
-    const armoryRamp = new THREE.Mesh(armoryRampGeo, woodMat);
-    armoryRamp.position.set(38, 3.25, 7.5);
-    armoryRamp.castShadow = true;
-    buildingGroup.add(armoryRamp);
+    // Smooth climbable ramp to Armory Roof
+    createZAlignedRamp(44, 6.5, 6, 15, 6.5);
 
-    ramps.push({
-      minX: 34,
-      maxX: 42,
-      minZ: 3.0,
-      maxZ: 12.0,
-      axis: 'z',
-      startCoord: 3.5,
-      endCoord: 12.0,
-      baseHeight: 0,
-      topHeight: 6.5,
-    });
-
-    // BUILDING D: Shipping Containers Hub (26, 0, -28)
-    const cont1 = new THREE.Mesh(new THREE.BoxGeometry(7, 3.8, 16), blueMat);
-    cont1.position.set(22, 1.9, -28);
+    // ---------------------------------------------------------
+    // ZONE 4: SHIPPING CONTAINER LOGISTICS YARD (32, 0, -32)
+    // ---------------------------------------------------------
+    const cont1 = new THREE.Mesh(new THREE.BoxGeometry(8, 3.8, 18), blueMat);
+    cont1.position.set(26, 1.9, -32);
     cont1.castShadow = true;
     buildingGroup.add(cont1);
-    obstacles.push({ minX: 18.5, maxX: 25.5, minZ: -36, maxZ: -20, height: 3.8 });
+    obstacles.push({ minX: 22, maxX: 30, minZ: -41, maxZ: -23, height: 3.8, roofPlatform: true });
 
-    const cont2 = new THREE.Mesh(new THREE.BoxGeometry(7, 3.8, 16), redMat);
-    cont2.position.set(22, 5.7, -28);
+    const cont2 = new THREE.Mesh(new THREE.BoxGeometry(8, 3.8, 18), redMat);
+    cont2.position.set(26, 5.7, -32);
     cont2.castShadow = true;
     buildingGroup.add(cont2);
-    obstacles.push({ minX: 18.5, maxX: 25.5, minZ: -36, maxZ: -20, height: 7.6 });
+    obstacles.push({ minX: 22, maxX: 30, minZ: -41, maxZ: -23, height: 7.6, roofPlatform: true });
 
-    const cont3 = new THREE.Mesh(new THREE.BoxGeometry(16, 3.8, 7), yellowMat);
-    cont3.position.set(34, 1.9, -28);
+    const cont3 = new THREE.Mesh(new THREE.BoxGeometry(18, 3.8, 8), yellowMat);
+    cont3.position.set(40, 1.9, -32);
     cont3.castShadow = true;
     buildingGroup.add(cont3);
-    obstacles.push({ minX: 26, maxX: 42, minZ: -31.5, maxZ: -24.5, height: 3.8 });
+    obstacles.push({ minX: 31, maxX: 49, minZ: -36, maxZ: -28, height: 3.8, roofPlatform: true });
 
-    const contRampGeo = new THREE.BoxGeometry(5.5, 0.4, 6.5);
-    contRampGeo.rotateX(Math.atan2(3.8, 5.5));
-    const contRamp = new THREE.Mesh(contRampGeo, woodMat);
-    contRamp.position.set(34, 1.9, -19.5);
-    contRamp.castShadow = true;
-    buildingGroup.add(contRamp);
+    const yardSign = createChineseSign('货运码头', 'CARGO HARBOR', 8, 2.8, '#22c55e');
+    yardSign.position.set(26, 6.2, -22.9);
+    buildingGroup.add(yardSign);
 
-    ramps.push({
-      minX: 31,
-      maxX: 37,
-      minZ: -24.5,
-      maxZ: -16.5,
-      axis: 'z',
-      startCoord: -17.0,
-      endCoord: -24.5,
-      baseHeight: 0,
-      topHeight: 3.8,
-    });
+    // Smooth climbable ramp onto Shipping Containers
+    createZAlignedRamp(40, 6.0, -21, -28, 3.8);
 
-    // BUILDING E: Central Tactical 45-Degree Fortnite Build Ramps
-    const midPlat = new THREE.Mesh(new THREE.BoxGeometry(6, 0.5, 6), woodMat);
-    midPlat.position.set(0, 3.75, 14);
-    buildingGroup.add(midPlat);
-    obstacles.push({ minX: -3, maxX: 3, minZ: 11, maxZ: 17, height: 4.0 });
+    // Skybridge connecting Container 3 to Stacked Container 2
+    const skybridge = new THREE.Mesh(new THREE.BoxGeometry(10, 0.4, 4), metalMat);
+    skybridge.position.set(33, 4.0, -32);
+    buildingGroup.add(skybridge);
 
-    const midRampGeo = new THREE.BoxGeometry(6, 0.4, 6.8);
-    midRampGeo.rotateX(Math.atan2(4.0, 5.5));
-    const midRamp = new THREE.Mesh(midRampGeo, woodMat);
-    midRamp.position.set(0, 2.0, 8.0);
-    midRamp.castShadow = true;
-    buildingGroup.add(midRamp);
+    // ---------------------------------------------------------
+    // ZONE 5: POWER SUBSTATION & GENERATOR MATRIX (0, 0, 42)
+    // ---------------------------------------------------------
+    const subGroup = new THREE.Group();
+    // Generator Turbine 1
+    const turbine1 = new THREE.Mesh(new THREE.CylinderGeometry(4.5, 4.5, 8.5, 24), concreteMat);
+    turbine1.position.set(-8, 4.25, 0);
+    turbine1.castShadow = true;
+    subGroup.add(turbine1);
+    obstacles.push({ minX: -13, maxX: -3, minZ: 37, maxZ: 47, height: 8.5, roofPlatform: true });
 
-    ramps.push({
-      minX: -3.5,
-      maxX: 3.5,
-      minZ: 5.0,
-      maxZ: 11.2,
-      axis: 'z',
-      startCoord: 5.2,
-      endCoord: 11.0,
-      baseHeight: 0,
-      topHeight: 4.0,
+    // Generator Turbine 2
+    const turbine2 = new THREE.Mesh(new THREE.CylinderGeometry(4.5, 4.5, 8.5, 24), concreteMat);
+    turbine2.position.set(8, 4.25, 0);
+    turbine2.castShadow = true;
+    subGroup.add(turbine2);
+    obstacles.push({ minX: 3, maxX: 13, minZ: 37, maxZ: 47, height: 8.5, roofPlatform: true });
+
+    // High Catwalk bridging Turbines
+    const catwalk = new THREE.Mesh(new THREE.BoxGeometry(22, 0.5, 5), metalMat);
+    catwalk.position.set(0, 8.5, 0);
+    subGroup.add(catwalk);
+    obstacles.push({ minX: -11, maxX: 11, minZ: 39.5, maxZ: 44.5, height: 8.5, roofPlatform: true });
+
+    const powerSign = createChineseSign('能量站', 'POWER MATRIX', 8, 2.8, '#a855f7');
+    powerSign.position.set(0, 7.0, 2.6);
+    subGroup.add(powerSign);
+
+    subGroup.position.set(0, 0, 42);
+    buildingGroup.add(subGroup);
+
+    // Wide ramp to Substation Catwalk
+    createZAlignedRamp(0, 6.5, 28, 39.5, 8.5);
+
+    // ---------------------------------------------------------
+    // ZONE 6: CENTRAL TACTICAL FORTNITE 45° BUILDS (0, 0, -2)
+    // ---------------------------------------------------------
+    const centerPlat = new THREE.Mesh(new THREE.BoxGeometry(8, 0.5, 8), woodMat);
+    centerPlat.position.set(0, 4.5, -2);
+    buildingGroup.add(centerPlat);
+    obstacles.push({ minX: -4, maxX: 4, minZ: -6, maxZ: 2, height: 4.5, roofPlatform: true });
+
+    // Central ramp from North ground up to platform
+    createZAlignedRamp(0, 6.5, -12, -6, 4.5);
+
+    // ---------------------------------------------------------
+    // STREETLIGHTS & GROUND PROPS
+    // ---------------------------------------------------------
+    const poleMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.9, roughness: 0.2 });
+    const lampGlowMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
+
+    const lightPositions = [
+      { x: -20, z: 15 },
+      { x: 20, z: 15 },
+      { x: -20, z: -15 },
+      { x: 20, z: -15 },
+      { x: 0, z: 20 },
+      { x: 0, z: -25 },
+    ];
+
+    lightPositions.forEach(({ x, z }) => {
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 6, 8), poleMat);
+      pole.position.set(x, 3, z);
+      buildingGroup.add(pole);
+
+      const lampHead = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.3, 0.8), lampGlowMat);
+      lampHead.position.set(x, 6, z);
+      buildingGroup.add(lampHead);
     });
 
     scene.add(buildingGroup);
     obstaclesRef.current = obstacles;
     rampsRef.current = ramps;
 
-    // 7. PINE TREES, FOLIAGE & BOULDERS
-    const trunkMat = new THREE.MeshStandardMaterial({ color: 0x582a0b, roughness: 0.9 });
+    // 7. PINE & CYBER BAMBOO TREES
+    const trunkMat = new THREE.MeshStandardMaterial({ color: 0x3e1f07, roughness: 0.9 });
     const pineMat = new THREE.MeshStandardMaterial({ color: 0x14532d, roughness: 0.8 });
-    const rockMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.9 });
+    const bambooMat = new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.45, emissive: 0x15803d, emissiveIntensity: 0.2 });
 
-    for (let t = 0; t < 36; t++) {
-      const angle = (t / 36) * Math.PI * 2 + Math.sin(t * 1.5) * 0.4;
-      const dist = 55 + (t % 5) * 18;
+    for (let t = 0; t < 48; t++) {
+      const angle = (t / 48) * Math.PI * 2 + Math.sin(t * 1.7) * 0.3;
+      const dist = 70 + (t % 7) * 16;
       const tx = Math.cos(angle) * dist;
       const tz = Math.sin(angle) * dist;
 
-      const tree = new THREE.Group();
-      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.6, 3.5, 8), trunkMat);
-      trunk.position.y = 1.75;
-      trunk.castShadow = true;
-      tree.add(trunk);
-
-      for (let lvl = 0; lvl < 3; lvl++) {
-        const cone = new THREE.Mesh(
-          new THREE.ConeGeometry(3.2 - lvl * 0.7, 3.0, 8),
-          pineMat
-        );
-        cone.position.y = 3.2 + lvl * 1.8;
-        cone.castShadow = true;
-        tree.add(cone);
-      }
-
-      tree.position.set(tx, 0, tz);
-      scene.add(tree);
-
       if (t % 3 === 0) {
-        const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(1.8 + Math.random(), 1), rockMat);
-        rock.position.set(tx + 6, 1.0, tz + 4);
-        rock.castShadow = true;
-        scene.add(rock);
+        // Cyber Bamboo Cluster
+        const bamboo = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 14, 8), bambooMat);
+        bamboo.position.set(tx, 7, tz);
+        scene.add(bamboo);
+      } else {
+        const tree = new THREE.Group();
+        const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.65, 4, 8), trunkMat);
+        trunk.position.y = 2;
+        tree.add(trunk);
+
+        for (let lvl = 0; lvl < 3; lvl++) {
+          const cone = new THREE.Mesh(new THREE.ConeGeometry(3.5 - lvl * 0.7, 3.2, 8), pineMat);
+          cone.position.y = 3.6 + lvl * 2.0;
+          tree.add(cone);
+        }
+        tree.position.set(tx, 0, tz);
+        scene.add(tree);
       }
     }
 
-    // 8. INTERACTIVE LOOT PICKUPS
-    const goldMat = new THREE.MeshStandardMaterial({
-      color: 0xf59e0b,
-      metalness: 0.95,
-      roughness: 0.15,
-      emissive: 0xd97706,
-      emissiveIntensity: 0.5,
-    });
-    const chestGoldMat = new THREE.MeshStandardMaterial({
-      color: 0xfbbf24,
-      metalness: 0.9,
-      roughness: 0.2,
-      emissive: 0xf59e0b,
-      emissiveIntensity: 0.6,
-    });
-    const slurpMat = new THREE.MeshStandardMaterial({
-      color: 0x06b6d4,
-      metalness: 0.7,
-      roughness: 0.2,
-      emissive: 0x0891b2,
-      emissiveIntensity: 0.7,
-    });
-    const ammoMat = new THREE.MeshStandardMaterial({
-      color: 0x65a30d,
-      metalness: 0.6,
-      roughness: 0.4,
-      emissive: 0x4d7c0f,
-      emissiveIntensity: 0.4,
-    });
+    // 8. WORLD LOOT PICKUPS & WEAPON CRATES
+    const goldMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.95, roughness: 0.15, emissive: 0xd97706, emissiveIntensity: 0.5 });
+    const chestGoldMat = new THREE.MeshStandardMaterial({ color: 0xfbbf24, metalness: 0.9, roughness: 0.2, emissive: 0xf59e0b, emissiveIntensity: 0.6 });
+    const slurpMat = new THREE.MeshStandardMaterial({ color: 0x06b6d4, metalness: 0.7, roughness: 0.2, emissive: 0x0891b2, emissiveIntensity: 0.7 });
+    const ammoMat = new THREE.MeshStandardMaterial({ color: 0x65a30d, metalness: 0.6, roughness: 0.4, emissive: 0x4d7c0f, emissiveIntensity: 0.4 });
+    const crateMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6, metalness: 0.85, roughness: 0.25, emissive: 0x1d4ed8, emissiveIntensity: 0.7 });
 
-    const pickups: GoldCoinPickup3D[] = [];
+    const pickups: WorldPickup3D[] = [];
 
-    const spawnPickup = (x: number, y: number, z: number, type: 'coin' | 'chest' | 'ammo' | 'slurp') => {
+    const spawnPickup = (
+      x: number,
+      y: number,
+      z: number,
+      type: 'coin' | 'chest' | 'ammo' | 'slurp' | 'weapon_crate',
+      weaponIdToUnlock?: WeaponId
+    ) => {
       const g = new THREE.Group();
       let mainMesh: THREE.Mesh | THREE.Group;
 
@@ -1375,6 +1609,15 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
         cLid.position.set(0, 1.1, 0);
         chestG.add(cLid);
         mainMesh = chestG;
+      } else if (type === 'weapon_crate') {
+        const crateG = new THREE.Group();
+        const crateBody = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.3, 1.6), crateMat);
+        crateBody.position.y = 0.65;
+        crateG.add(crateBody);
+        const lockLight = new THREE.Mesh(new THREE.SphereGeometry(0.25, 12, 12), new THREE.MeshBasicMaterial({ color: 0x38bdf8 }));
+        lockLight.position.set(0, 0.65, 0.82);
+        crateG.add(lockLight);
+        mainMesh = crateG;
       } else if (type === 'slurp') {
         const slurpKeg = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.8, 1.4, 16), slurpMat);
         slurpKeg.position.y = 0.7;
@@ -1387,25 +1630,23 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
 
       g.add(mainMesh);
 
-      const beaconGeo = new THREE.CylinderGeometry(0.12, 0.7, 18, 16, 1, true);
+      // Vertical beacon of light pointing straight up
+      const beaconGeo = new THREE.CylinderGeometry(0.15, 0.8, 22, 16, 1, true);
+      const beaconColor =
+        type === 'weapon_crate' ? 0x38bdf8 : type === 'slurp' ? 0x22d3ee : type === 'ammo' ? 0x84cc16 : 0xfbbf24;
       const beaconMat = new THREE.MeshBasicMaterial({
-        color: type === 'slurp' ? 0x22d3ee : type === 'ammo' ? 0x84cc16 : 0xfbbf24,
+        color: beaconColor,
         transparent: true,
-        opacity: 0.45,
+        opacity: 0.5,
         side: THREE.DoubleSide,
       });
       const beacon = new THREE.Mesh(beaconGeo, beaconMat);
-      beacon.position.y = 9;
+      beacon.position.y = 11;
       g.add(beacon);
 
       const halo = new THREE.Mesh(
-        new THREE.RingGeometry(1.2, 1.7, 24),
-        new THREE.MeshBasicMaterial({
-          color: type === 'slurp' ? 0x38bdf8 : type === 'ammo' ? 0xa3e635 : 0xfde047,
-          transparent: true,
-          opacity: 0.6,
-          side: THREE.DoubleSide,
-        })
+        new THREE.RingGeometry(1.4, 1.9, 24),
+        new THREE.MeshBasicMaterial({ color: beaconColor, transparent: true, opacity: 0.7, side: THREE.DoubleSide })
       );
       halo.rotateX(Math.PI / 2);
       halo.position.y = 0.1;
@@ -1424,58 +1665,140 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
         z,
         collected: false,
         type,
+        weaponIdToUnlock,
       });
     };
 
-    spawnPickup(-42, 10.3, 32, 'chest'); // Rooftop Chest!
-    spawnPickup(-36, 12.5, -30, 'coin'); // Clocktower Balcony
-    spawnPickup(38, 6.5, 20, 'ammo');    // Armory Roof
-    spawnPickup(22, 5.7, -28, 'slurp');  // Shipping Container Roof
-    spawnPickup(0, 3.75, 14, 'slurp');   // Center Ramp Platform
+    // WEAPON CRATES (Discoverable across tactical map hotspots!)
+    // 1. Storm Assault Rifle at Armory Bunker Roof
+    spawnPickup(44, 6.7, 24, 'weapon_crate', 'rifle');
+    // 2. Havoc Plasma Shotgun at Shipping Container Hub
+    spawnPickup(26, 7.8, -32, 'weapon_crate', 'shotgun');
+    // 3. Thermal Void Sniper at Dragon Pagoda Balcony
+    spawnPickup(-40, 12.8, -36, 'weapon_crate', 'sniper');
+    // 4. Quantum Rocket Launcher at Substation Catwalk
+    spawnPickup(0, 8.8, 42, 'weapon_crate', 'rocket');
+
+    // VERIFIED ACCESSIBLE ROOFTOP & GROUND ITEMS (No floating out of reach!)
+    spawnPickup(-48, 10.5, 36, 'chest');   // Apartment Rooftop Chest (reachable via ramp!)
+    spawnPickup(0, 4.8, -2, 'chest');      // Central Platform Chest
+    spawnPickup(40, 4.0, -32, 'ammo');     // Container 3 Deck
+    spawnPickup(-48, 0.4, 14, 'slurp');    // Ramp Base
+    spawnPickup(44, 0.4, 8, 'ammo');       // Armory Ground
     spawnPickup(-20, 0.4, 18, 'coin');
     spawnPickup(18, 0.4, 8, 'coin');
     spawnPickup(-14, 0.4, -18, 'coin');
-    spawnPickup(12, 0.4, 25, 'ammo');
+    spawnPickup(12, 0.4, 25, 'coin');
+    spawnPickup(0, 0.4, -18, 'slurp');
 
-    goldPickupsRef.current = pickups;
+    worldPickupsRef.current = pickups;
 
-    // 9. HIGH-FIDELITY FORTNITE PLAYER CHARACTER
+    // 9. HIGH-FIDELITY ARTICULATED CYBER HERO CHARACTER MODEL
     const pGroup = new THREE.Group();
     playerGroupRef.current = pGroup;
 
+    const suitColorHex = equippedSkin?.accentColor
+      ? parseInt(equippedSkin.accentColor.replace('#', '0x'))
+      : 0x0284c7;
+
     const suitMat = new THREE.MeshStandardMaterial({
-      color: equippedSkin?.accentColor ? parseInt(equippedSkin.accentColor.replace('#', '0x')) : 0x0284c7,
-      metalness: 0.6,
-      roughness: 0.35,
+      color: suitColorHex,
+      metalness: 0.65,
+      roughness: 0.3,
     });
-    const armorDarkMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.85, roughness: 0.25 });
+    const armorDarkMat = new THREE.MeshStandardMaterial({ color: 0x0b1120, metalness: 0.9, roughness: 0.2 });
     const visorMat = new THREE.MeshStandardMaterial({
       color: 0x22d3ee,
       emissive: 0x22d3ee,
-      emissiveIntensity: 0.8,
-      metalness: 0.9,
+      emissiveIntensity: 0.85,
+      metalness: 0.95,
       roughness: 0.1,
     });
+    const goldAccentMat = new THREE.MeshStandardMaterial({
+      color: 0xf59e0b,
+      metalness: 0.85,
+      roughness: 0.2,
+      emissive: 0xd97706,
+      emissiveIntensity: 0.3,
+    });
 
-    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.25, 0.55), suitMat);
-    torso.position.y = 1.7;
-    torso.castShadow = true;
-    pGroup.add(torso);
+    const torsoGroup = new THREE.Group();
+    torsoGroup.position.y = 1.7;
 
-    const arcCore = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.12, 16), visorMat);
+    // Ballistic chestplate
+    const torsoMesh = new THREE.Mesh(new THREE.BoxGeometry(0.92, 1.25, 0.55), suitMat);
+    torsoMesh.castShadow = true;
+    torsoGroup.add(torsoMesh);
+
+    // Glowing Arc Core Reactor
+    const arcCore = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.12, 16), visorMat);
     arcCore.rotateX(Math.PI / 2);
-    arcCore.position.set(0, 1.85, 0.29);
-    pGroup.add(arcCore);
+    arcCore.position.set(0, 0.15, 0.3);
+    torsoGroup.add(arcCore);
 
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.36, 16, 16), armorDarkMat);
-    head.position.y = 2.65;
-    head.castShadow = true;
-    pGroup.add(head);
+    // Shoulder Pauldrons (Left & Right)
+    const pauldronL = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.25, 0.45), armorDarkMat);
+    pauldronL.position.set(-0.6, 0.5, 0);
+    torsoGroup.add(pauldronL);
 
-    const visor = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.16, 0.2), visorMat);
-    visor.position.set(0, 2.65, 0.28);
-    pGroup.add(visor);
+    const pauldronR = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.25, 0.45), armorDarkMat);
+    pauldronR.position.set(0.6, 0.5, 0);
+    torsoGroup.add(pauldronR);
 
+    // CYBER JETPACK / DUAL JUMP BOOSTER THRUSTERS ON BACK
+    const jetpackBody = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.7, 0.25), armorDarkMat);
+    jetpackBody.position.set(0, 0.1, -0.38);
+    torsoGroup.add(jetpackBody);
+
+    const thrusterL = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.14, 0.45, 12), goldAccentMat);
+    thrusterL.position.set(-0.2, -0.2, -0.42);
+    torsoGroup.add(thrusterL);
+
+    const thrusterR = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.14, 0.45, 12), goldAccentMat);
+    thrusterR.position.set(0.2, -0.2, -0.42);
+    torsoGroup.add(thrusterR);
+
+    // Dynamic Jetpack Flare Flame (Ignites on Jump & Double Jump!)
+    const thrusterFlames = new THREE.Group();
+    const flameMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.85 });
+    const flameL = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.6, 8), flameMat);
+    flameL.rotateX(Math.PI);
+    flameL.position.set(-0.2, -0.55, -0.42);
+    thrusterFlames.add(flameL);
+
+    const flameR = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.6, 8), flameMat);
+    flameR.rotateX(Math.PI);
+    flameR.position.set(0.2, -0.55, -0.42);
+    thrusterFlames.add(flameR);
+    thrusterFlames.visible = false;
+    torsoGroup.add(thrusterFlames);
+    thrusterFlameMeshRef.current = thrusterFlames;
+
+    // Helm with Panoramic Visor and Chinese Crest
+    const headGroup = new THREE.Group();
+    headGroup.position.set(0, 0.95, 0);
+
+    const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.38, 16, 16), armorDarkMat);
+    helmet.castShadow = true;
+    headGroup.add(helmet);
+
+    const visor = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.18, 0.22), visorMat);
+    visor.position.set(0, 0.02, 0.3);
+    headGroup.add(visor);
+
+    // Ear Comms Antennas
+    const antennaL = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.35, 8), goldAccentMat);
+    antennaL.position.set(-0.38, 0.25, 0);
+    headGroup.add(antennaL);
+
+    const antennaR = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.35, 8), goldAccentMat);
+    antennaR.position.set(0.38, 0.25, 0);
+    headGroup.add(antennaR);
+
+    torsoGroup.add(headGroup);
+    pGroup.add(torsoGroup);
+
+    // Armored Legs
     const legGeo = new THREE.CylinderGeometry(0.18, 0.15, 1.15, 8);
     const leftLeg = new THREE.Mesh(legGeo, armorDarkMat);
     leftLeg.position.set(-0.3, 0.6, 0);
@@ -1487,6 +1810,7 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
     rightLeg.castShadow = true;
     pGroup.add(rightLeg);
 
+    // Articulated Arms holding weapon
     const leftArmGroup = new THREE.Group();
     leftArmGroup.position.set(-0.58, 2.05, 0);
     const leftArmMesh = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.9, 0.24), suitMat);
@@ -1503,6 +1827,7 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
     rightArmGroup.add(rightArmMesh);
     pGroup.add(rightArmGroup);
 
+    // Weapon Mount
     const weaponMount = new THREE.Group();
     weaponMount.position.set(0.45, 1.7, 0.65);
     const curW = weaponsRef.current[0];
@@ -1523,14 +1848,16 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
       rightLeg,
       leftArmGroup,
       rightArmGroup,
+      torsoGroup,
       weaponMount,
       muzzleFlashMesh: flashMesh,
+      thrusterFlames,
     };
 
     pGroup.position.set(0, 0, 0);
     scene.add(pGroup);
 
-    // 10. DYNAMIC ENEMY SQUAD GENERATOR FOR 10 ESCALATING LEVELS
+    // 10. HIGH-FIDELITY PROCEDURAL ENEMY GENERATOR (4 DISTINCT CLASSES)
     const spawnWaveSquad = (waveNum: number) => {
       enemiesRef.current.forEach((bot) => scene.remove(bot.group));
       enemiesRef.current = [];
@@ -1540,32 +1867,35 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
 
       const enemyList: EnemyBot3D[] = [];
 
-      // Dynamic bot spawns around key tactical locations
-      const tacticalSpawnPoints = [
-        { name: 'Scout Bot', x: 28, z: 22, isBoss: false, scale: 0.9, hp: 50 + waveNum * 12, speed: 0.055 },
-        { name: 'Assault Mecha', x: -28, z: -18, isBoss: false, scale: 1.0, hp: 70 + waveNum * 16, speed: 0.05 },
-        { name: 'Container Flanker', x: 24, z: -22, isBoss: false, scale: 1.05, hp: 80 + waveNum * 18, speed: 0.058 },
-        { name: 'Heavy Trooper', x: -30, z: 25, isBoss: false, scale: 1.15, hp: 95 + waveNum * 22, speed: 0.042 },
-        { name: 'Rooftop Sniper', x: -36, z: -28, isBoss: false, scale: 1.0, hp: 75 + waveNum * 15, speed: 0.048 },
-        { name: 'Syndicate Shockbot', x: 38, z: 25, isBoss: false, scale: 1.05, hp: 85 + waveNum * 20, speed: 0.06 },
-        { name: 'Cyber Enforcer', x: 0, z: -25, isBoss: false, scale: 1.1, hp: 100 + waveNum * 25, speed: 0.05 },
-        { name: 'Bunker Guard', x: 35, z: 12, isBoss: false, scale: 1.08, hp: 90 + waveNum * 20, speed: 0.045 },
-        { name: 'Clocktower Stalker', x: -22, z: -35, isBoss: false, scale: 1.0, hp: 80 + waveNum * 18, speed: 0.055 },
-        { name: 'Apartment Raider', x: -44, z: 20, isBoss: false, scale: 1.12, hp: 110 + waveNum * 28, speed: 0.048 },
-        { name: 'Apex Vanguard', x: 15, z: 32, isBoss: false, scale: 1.15, hp: 120 + waveNum * 30, speed: 0.052 },
-        { name: 'Shadow Shinobi', x: -15, z: 12, isBoss: false, scale: 0.95, hp: 85 + waveNum * 20, speed: 0.065 },
-        { name: 'Dread Drone', x: 30, z: -35, isBoss: false, scale: 0.9, hp: 70 + waveNum * 15, speed: 0.06 },
+      // Spawn distribution across tactical zones
+      const tacticalSpawnPoints: Array<{ name: string; type: EnemyType; x: number; z: number; hp: number; speed: number }> = [
+        { name: 'Sky Scout Drone', type: 'drone', x: 28, z: 22, hp: 55 + waveNum * 12, speed: 0.06 },
+        { name: 'Vanguard Brute', type: 'heavy', x: -28, z: -18, hp: 85 + waveNum * 18, speed: 0.045 },
+        { name: 'Shadow Shinobi', type: 'ninja', x: 24, z: -22, hp: 70 + waveNum * 15, speed: 0.065 },
+        { name: 'Substation Trooper', type: 'heavy', x: -30, z: 25, hp: 95 + waveNum * 20, speed: 0.048 },
+        { name: 'Balcony Drone Sentry', type: 'drone', x: -36, z: -28, hp: 65 + waveNum * 14, speed: 0.06 },
+        { name: 'Armory Enforcer', type: 'heavy', x: 38, z: 25, hp: 90 + waveNum * 22, speed: 0.05 },
+        { name: 'Cyber Assassin', type: 'ninja', x: 0, z: -25, hp: 80 + waveNum * 18, speed: 0.068 },
+        { name: 'Container Raider', type: 'heavy', x: 35, z: 12, hp: 100 + waveNum * 25, speed: 0.048 },
+        { name: 'Bamboo Stalker', type: 'ninja', x: -22, z: -35, hp: 75 + waveNum * 16, speed: 0.062 },
+        { name: 'Skyline Striker', type: 'drone', x: -44, z: 20, hp: 85 + waveNum * 18, speed: 0.058 },
+        { name: 'Apex Vanguard', type: 'heavy', x: 15, z: 32, hp: 120 + waveNum * 30, speed: 0.05 },
+        { name: 'Blade Ronin', type: 'ninja', x: -15, z: 12, hp: 85 + waveNum * 20, speed: 0.065 },
+        { name: 'Dread Drone', type: 'drone', x: 30, z: -35, hp: 70 + waveNum * 15, speed: 0.06 },
+        { name: 'Iron Sentinel', type: 'heavy', x: -38, z: 8, hp: 130 + waveNum * 28, speed: 0.046 },
+        { name: 'Phantom Striker', type: 'ninja', x: 18, z: -14, hp: 95 + waveNum * 22, speed: 0.064 },
+        { name: 'Overlord Vanguard', type: 'heavy', x: 5, z: 25, hp: 140 + waveNum * 32, speed: 0.048 },
       ];
 
-      // Add regular squad bots up to levelCfg.botCount - 1
+      // Add squad bots up to levelCfg.botCount - 1
       const regularCount = Math.min(levelCfg.botCount - 1, tacticalSpawnPoints.length);
       for (let i = 0; i < regularCount; i++) {
         const cfg = tacticalSpawnPoints[i];
-        createBotMesh(cfg.name, cfg.hp, cfg.speed, cfg.x, cfg.z, false, cfg.scale, enemyList);
+        createProceduralBot(cfg.name, cfg.type, cfg.hp, cfg.speed, cfg.x, cfg.z, false, 1.0, enemyList);
       }
 
-      // Add the Boss
-      createBotMesh(levelCfg.bossName, levelCfg.bossHp, 0.045, 0, -36, true, 1.5, enemyList);
+      // Add Level Boss
+      createProceduralBot(levelCfg.bossName, levelCfg.bossType, levelCfg.bossHp, 0.045, 0, -38, true, 1.7, enemyList);
 
       enemiesRef.current = enemyList;
       setTotalEnemiesInWave(enemyList.length);
@@ -1575,8 +1905,10 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
       setStormSeconds(levelCfg.stormSeconds);
     };
 
-    const createBotMesh = (
+    // Procedural Enemy Model Construction
+    const createProceduralBot = (
       name: string,
+      type: EnemyType,
       hp: number,
       speed: number,
       x: number,
@@ -1586,103 +1918,250 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
       targetList: EnemyBot3D[]
     ) => {
       const eGroup = new THREE.Group();
-      const eMat = new THREE.MeshStandardMaterial({
-        color: isBoss ? 0xdc2626 : 0x475569,
-        metalness: 0.8,
-        roughness: 0.3,
+      let leftLeg: THREE.Mesh | undefined;
+      let rightLeg: THREE.Mesh | undefined;
+      let spinningRing: THREE.Group | undefined;
+
+      const baseMat = new THREE.MeshStandardMaterial({
+        color: isBoss ? 0xdc2626 : type === 'drone' ? 0x0284c7 : type === 'ninja' ? 0x7c3aed : 0x475569,
+        metalness: 0.85,
+        roughness: 0.25,
       });
 
-      const bTorso = new THREE.Mesh(new THREE.BoxGeometry(1.0 * scale, 1.4 * scale, 0.7 * scale), eMat);
-      bTorso.position.y = 1.9 * scale;
-      bTorso.castShadow = true;
-      eGroup.add(bTorso);
+      const glowMat = new THREE.MeshBasicMaterial({
+        color: isBoss ? 0xef4444 : type === 'drone' ? 0x38bdf8 : type === 'ninja' ? 0xc084fc : 0xf59e0b,
+      });
 
-      const bCore = new THREE.Mesh(
-        new THREE.SphereGeometry(0.3 * scale, 12, 12),
-        new THREE.MeshStandardMaterial({
-          color: isBoss ? 0xff0000 : 0xf59e0b,
-          emissive: isBoss ? 0xff0000 : 0xf59e0b,
-          emissiveIntensity: 0.8,
-        })
-      );
-      bCore.position.set(0, 1.9 * scale, 0.38 * scale);
-      eGroup.add(bCore);
+      if (type === 'drone') {
+        // DRONE SENTRY: Hovering multi-rotor chassis with spinning gyroscopic rings
+        const droneBody = new THREE.Mesh(new THREE.ConeGeometry(0.9 * scale, 1.2 * scale, 6), baseMat);
+        droneBody.rotateX(Math.PI);
+        droneBody.position.y = 2.4 * scale;
+        eGroup.add(droneBody);
 
-      const bLegL = new THREE.Mesh(new THREE.CylinderGeometry(0.16 * scale, 0.14 * scale, 1.3 * scale, 8), eMat);
-      bLegL.position.set(-0.35 * scale, 0.65 * scale, 0);
-      eGroup.add(bLegL);
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.3 * scale, 16, 16), glowMat);
+        eye.position.set(0, 2.2 * scale, 0.45 * scale);
+        eGroup.add(eye);
 
-      const bLegR = new THREE.Mesh(new THREE.CylinderGeometry(0.16 * scale, 0.14 * scale, 1.3 * scale, 8), eMat);
-      bLegR.position.set(0.35 * scale, 0.65 * scale, 0);
-      eGroup.add(bLegR);
+        spinningRing = new THREE.Group();
+        spinningRing.position.set(0, 2.5 * scale, 0);
+        const ringMesh = new THREE.Mesh(new THREE.TorusGeometry(1.4 * scale, 0.1 * scale, 8, 24), glowMat);
+        ringMesh.rotateX(Math.PI / 2);
+        spinningRing.add(ringMesh);
+        eGroup.add(spinningRing);
+
+        // Twin cannons
+        const cannonL = new THREE.Mesh(new THREE.CylinderGeometry(0.08 * scale, 0.08 * scale, 0.8 * scale, 8), baseMat);
+        cannonL.rotateX(Math.PI / 2);
+        cannonL.position.set(-0.6 * scale, 1.8 * scale, 0.5 * scale);
+        eGroup.add(cannonL);
+
+        const cannonR = cannonL.clone();
+        cannonR.position.set(0.6 * scale, 1.8 * scale, 0.5 * scale);
+        eGroup.add(cannonR);
+      } else if (type === 'ninja') {
+        // SHADOW SHINOBI: Sleek aerodynamic carbon chassis with dual energy katanas
+        const torso = new THREE.Mesh(new THREE.BoxGeometry(0.85 * scale, 1.3 * scale, 0.5 * scale), baseMat);
+        torso.position.y = 1.8 * scale;
+        eGroup.add(torso);
+
+        const mask = new THREE.Mesh(new THREE.SphereGeometry(0.32 * scale, 16, 16), baseMat);
+        mask.position.set(0, 2.7 * scale, 0);
+        eGroup.add(mask);
+
+        const visorSlit = new THREE.Mesh(new THREE.BoxGeometry(0.4 * scale, 0.08 * scale, 0.2 * scale), glowMat);
+        visorSlit.position.set(0, 2.7 * scale, 0.26 * scale);
+        eGroup.add(visorSlit);
+
+        // Dual Neon Blades on arms
+        const bladeGeo = new THREE.BoxGeometry(0.08 * scale, 1.2 * scale, 0.15 * scale);
+        const bladeL = new THREE.Mesh(bladeGeo, glowMat);
+        bladeL.position.set(-0.65 * scale, 1.4 * scale, 0.4 * scale);
+        bladeL.rotateX(Math.PI / 3);
+        eGroup.add(bladeL);
+
+        const bladeR = bladeL.clone();
+        bladeR.position.set(0.65 * scale, 1.4 * scale, 0.4 * scale);
+        eGroup.add(bladeR);
+
+        const legGeo = new THREE.CylinderGeometry(0.14 * scale, 0.12 * scale, 1.2 * scale, 8);
+        leftLeg = new THREE.Mesh(legGeo, baseMat);
+        leftLeg.position.set(-0.28 * scale, 0.6 * scale, 0);
+        eGroup.add(leftLeg);
+
+        rightLeg = new THREE.Mesh(legGeo, baseMat);
+        rightLeg.position.set(0.28 * scale, 0.6 * scale, 0);
+        eGroup.add(rightLeg);
+      } else {
+        // HEAVY CYBORG & BOSS TITAN: Bulky armor chassis with shoulder rocket batteries & massive pauldrons
+        const torso = new THREE.Mesh(new THREE.BoxGeometry(1.2 * scale, 1.5 * scale, 0.8 * scale), baseMat);
+        torso.position.y = 2.0 * scale;
+        torso.castShadow = true;
+        eGroup.add(torso);
+
+        const core = new THREE.Mesh(new THREE.SphereGeometry(0.35 * scale, 12, 12), glowMat);
+        core.position.set(0, 2.0 * scale, 0.45 * scale);
+        eGroup.add(core);
+
+        const pauldronL = new THREE.Mesh(new THREE.BoxGeometry(0.6 * scale, 0.4 * scale, 0.6 * scale), baseMat);
+        pauldronL.position.set(-0.9 * scale, 2.6 * scale, 0);
+        eGroup.add(pauldronL);
+
+        const pauldronR = pauldronL.clone();
+        pauldronR.position.set(0.9 * scale, 2.6 * scale, 0);
+        eGroup.add(pauldronR);
+
+        const head = new THREE.Mesh(new THREE.BoxGeometry(0.55 * scale, 0.55 * scale, 0.55 * scale), baseMat);
+        head.position.set(0, 2.9 * scale, 0);
+        eGroup.add(head);
+
+        const eyeVisor = new THREE.Mesh(new THREE.BoxGeometry(0.45 * scale, 0.15 * scale, 0.2 * scale), glowMat);
+        eyeVisor.position.set(0, 2.9 * scale, 0.25 * scale);
+        eGroup.add(eyeVisor);
+
+        const legGeo = new THREE.CylinderGeometry(0.2 * scale, 0.18 * scale, 1.35 * scale, 8);
+        leftLeg = new THREE.Mesh(legGeo, baseMat);
+        leftLeg.position.set(-0.4 * scale, 0.68 * scale, 0);
+        eGroup.add(leftLeg);
+
+        rightLeg = new THREE.Mesh(legGeo, baseMat);
+        rightLeg.position.set(0.4 * scale, 0.68 * scale, 0);
+        eGroup.add(rightLeg);
+      }
 
       // Overhead HP bar sprite
       const hpCanvas = document.createElement('canvas');
-      hpCanvas.width = 140;
-      hpCanvas.height = 36;
+      hpCanvas.width = 160;
+      hpCanvas.height = 42;
       const hpCtx = hpCanvas.getContext('2d')!;
       hpCtx.fillStyle = '#0f172a';
-      hpCtx.fillRect(0, 0, 140, 36);
-      hpCtx.fillStyle = isBoss ? '#ef4444' : '#f59e0b';
-      hpCtx.fillRect(2, 2, 136, 32);
+      hpCtx.fillRect(0, 0, 160, 42);
+      hpCtx.fillStyle = isBoss ? '#ef4444' : glowMat.color.getHexString() ? `#${glowMat.color.getHexString()}` : '#38bdf8';
+      hpCtx.fillRect(3, 3, 154, 36);
       hpCtx.fillStyle = '#ffffff';
-      hpCtx.font = 'bold 14px sans-serif';
+      hpCtx.font = 'bold 15px sans-serif';
       hpCtx.textAlign = 'center';
-      hpCtx.fillText(name, 70, 24);
+      hpCtx.fillText(name, 80, 27);
 
       const hpMap = new THREE.CanvasTexture(hpCanvas);
       const hpSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: hpMap }));
-      hpSprite.position.set(0, 3.9 * scale, 0);
-      hpSprite.scale.set(2.6 * scale, 0.65 * scale, 1);
+      hpSprite.position.set(0, 4.3 * scale, 0);
+      hpSprite.scale.set(3.0 * scale, 0.75 * scale, 1);
       eGroup.add(hpSprite);
 
-      eGroup.position.set(x, 0, z);
+      eGroup.position.set(x, type === 'drone' ? 1.5 : 0, z);
       scene.add(eGroup);
 
       targetList.push({
         id: name + Math.random(),
         name,
+        enemyType: type,
         group: eGroup,
-        leftLeg: bLegL,
-        rightLeg: bLegR,
+        leftLeg,
+        rightLeg,
+        spinningRing,
         hp,
         maxHp: hp,
         speed,
-        fireCooldown: 70 + Math.random() * 50,
+        fireCooldown: 60 + Math.random() * 50,
         strafeDir: Math.random() > 0.5 ? 1 : -1,
-        strafeTimer: 50,
+        strafeTimer: 40 + Math.random() * 40,
         isBoss,
         walkCycle: 0,
+        hoverHeight: type === 'drone' ? 1.5 : 0,
       });
     };
 
     spawnWaveRef.current = spawnWaveSquad;
     spawnWaveSquad(1);
 
-    // 11. KEYBOARD & MOUSE CONTROLS
+    // 11. KEYBOARD & MOUSE CONTROLS WITH DOUBLE SPACE JUMP & CHEST INTERACTION
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement)?.tagName === 'INPUT' || (e.target as HTMLElement)?.tagName === 'TEXTAREA') {
         return;
       }
       keysRef.current[e.key.toLowerCase()] = true;
 
+      // SPACE / DOUBLE SPACE JUMP HANDLING
       if (e.code === 'Space') {
         e.preventDefault();
         if (isGroundedRef.current) {
+          // Ground Jump
           playerVelocityY.current = 14.5;
           isGroundedRef.current = false;
+          jumpsUsedRef.current = 1;
           sounds.playShield();
+
+          if (thrusterFlameMeshRef.current) {
+            thrusterFlameMeshRef.current.visible = true;
+            setTimeout(() => {
+              if (thrusterFlameMeshRef.current) thrusterFlameMeshRef.current.visible = false;
+            }, 300);
+          }
+        } else if (jumpsUsedRef.current === 1) {
+          // DOUBLE JUMP! (MID-AIR ROCKET BOOST)
+          playerVelocityY.current = 13.5;
+          jumpsUsedRef.current = 2;
+          sounds.playVictory();
+          addCombatTextRef.current(`🚀 DOUBLE JUMP (双重跳跃)!`, true);
+
+          if (thrusterFlameMeshRef.current) {
+            thrusterFlameMeshRef.current.visible = true;
+            thrusterFlameMeshRef.current.scale.set(1.5, 1.8, 1.5);
+            setTimeout(() => {
+              if (thrusterFlameMeshRef.current) {
+                thrusterFlameMeshRef.current.visible = false;
+                thrusterFlameMeshRef.current.scale.set(1, 1, 1);
+              }
+            }, 450);
+          }
         }
       }
 
+      // Quick Reload
       if (e.code === 'KeyR' || e.key.toLowerCase() === 'r') {
         e.preventDefault();
         handleQuickReloadRef.current();
       }
 
+      // Weapon Slots 1 to 5
       const num = parseInt(e.key, 10);
       if (num >= 1 && num <= 5) {
         handleSelectWeaponRef.current(num - 1);
+      }
+
+      // Proximity chest unlock key [E]
+      if (e.code === 'KeyE' || e.key.toLowerCase() === 'e') {
+        if (pGroup) {
+          worldPickupsRef.current.forEach((cp) => {
+            if (cp.collected || cp.type !== 'weapon_crate') return;
+            const dist = Math.hypot(pGroup.position.x - cp.x, pGroup.position.z - cp.z);
+            if (dist < 4.0 && cp.weaponIdToUnlock) {
+              const targetWeaponId = cp.weaponIdToUnlock;
+              cp.collected = true;
+              scene.remove(cp.group);
+              sounds.playVictory();
+
+              setWeapons((prev) =>
+                prev.map((w, idx) => {
+                  if (w.id === targetWeaponId) {
+                    setActiveWeaponIdx(idx);
+                    return { ...w, isUnlocked: true };
+                  }
+                  return w;
+                })
+              );
+
+              const unlockedW = weaponsRef.current.find((w) => w.id === targetWeaponId);
+              addCombatTextRef.current(`🎉 UNLOCKED ${unlockedW?.name || 'NEW WEAPON'}!`, true);
+              setFeedbackBanner({
+                text: `🎉 ARSENAL EXPANDED! You discovered and unlocked the ${unlockedW?.name || 'Weapon'} (${unlockedW?.hanziName})!`,
+                type: 'success',
+              });
+              setNearbyChestPrompt(null);
+            }
+          });
+        }
       }
     };
 
@@ -1735,19 +2214,19 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
 
       // Storm animation
       if (stormMeshRef.current) {
-        const curR = THREE.MathUtils.damp(stormMeshRef.current.scale.x, stormRadiusRef.current / 160, 4, dt);
+        const curR = THREE.MathUtils.damp(stormMeshRef.current.scale.x, stormRadiusRef.current / 180, 4, dt);
         stormMeshRef.current.scale.set(curR, 1, curR);
         stormMeshRef.current.rotation.y += dt * 0.15;
       }
 
       // Collectible pick up animations
-      goldPickupsRef.current.forEach((cp) => {
+      worldPickupsRef.current.forEach((cp) => {
         if (cp.collected) return;
-        cp.group.rotation.y += dt * 2.2;
+        cp.group.rotation.y += dt * 2.0;
         cp.coinMesh.position.y = cp.baseY + Math.sin(time * 0.003 + cp.x) * 0.35;
       });
 
-      // Player Movement & Ramp Physics
+      // Player Movement & Smooth Ramp Physics
       if (pGroup && !isDefeatedRef.current) {
         const keys = keysRef.current;
         const camYaw = mouseLookRef.current.yaw;
@@ -1768,7 +2247,7 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
 
         if (isMoving) {
           moveDir.normalize();
-          const speed = 14.5 * dt;
+          const speed = 15.0 * dt;
           nextX = pGroup.position.x + moveDir.x * speed;
           nextZ = pGroup.position.z + moveDir.z * speed;
 
@@ -1794,21 +2273,22 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
           }
         }
 
-        // Ramp Collision
+        // PERFECT RAMP COLLISION & SMOOTH STEP-UP
         let rampGroundHeight: number | null = null;
         for (const ramp of rampsRef.current) {
           if (
-            nextX >= ramp.minX - 0.4 &&
-            nextX <= ramp.maxX + 0.4 &&
-            nextZ >= ramp.minZ - 0.4 &&
-            nextZ <= ramp.maxZ + 0.4
+            nextX >= ramp.minX &&
+            nextX <= ramp.maxX &&
+            nextZ >= ramp.minZ &&
+            nextZ <= ramp.maxZ
           ) {
             const coord = ramp.axis === 'z' ? nextZ : nextX;
             const t = (coord - ramp.startCoord) / (ramp.endCoord - ramp.startCoord);
-            if (t >= -0.08 && t <= 1.08) {
+            if (t >= -0.1 && t <= 1.1) {
               const clampedT = Math.max(0, Math.min(1, t));
               const expectedY = ramp.baseHeight + clampedT * (ramp.topHeight - ramp.baseHeight);
-              if (pGroup.position.y >= expectedY - 1.2 && pGroup.position.y <= expectedY + 2.6) {
+              // Allow smooth walk-on from floor or walk-off onto roof
+              if (pGroup.position.y >= expectedY - 1.5 && pGroup.position.y <= expectedY + 3.0) {
                 rampGroundHeight = expectedY;
                 break;
               }
@@ -1816,7 +2296,7 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
           }
         }
 
-        // Building Box Collision
+        // BUILDING BOX COLLISION & ROOFTOP PLATFORM SUPPORT
         let boxGroundHeight = 0;
         let canMove = true;
 
@@ -1828,7 +2308,11 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
             nextZ <= box.maxZ + 0.4;
 
           if (isInside) {
-            if (pGroup.position.y >= box.height - 0.75) {
+            // If already on or above the roof platform, support the player standing on it
+            if (pGroup.position.y >= box.height - 1.0) {
+              boxGroundHeight = Math.max(boxGroundHeight, box.height);
+            } else if (rampGroundHeight !== null && rampGroundHeight >= box.height - 1.0) {
+              // Transitioning from top of ramp onto roof platform smoothly
               boxGroundHeight = Math.max(boxGroundHeight, box.height);
             } else {
               canMove = false;
@@ -1850,6 +2334,7 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
           pGroup.position.y = effectiveGround;
           playerVelocityY.current = 0;
           isGroundedRef.current = true;
+          jumpsUsedRef.current = 0; // Reset double jump on landing
         }
 
         if (playerLimbsRef.current?.weaponMount) {
@@ -1858,8 +2343,8 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
 
         pGroup.rotation.y = THREE.MathUtils.damp(pGroup.rotation.y, camYaw + Math.PI, 22, dt);
 
-        pGroup.position.x = Math.max(-170, Math.min(170, pGroup.position.x));
-        pGroup.position.z = Math.max(-170, Math.min(170, pGroup.position.z));
+        pGroup.position.x = Math.max(-210, Math.min(210, pGroup.position.x));
+        pGroup.position.z = Math.max(-210, Math.min(210, pGroup.position.z));
 
         // Throttled storm tick
         const now = performance.now();
@@ -1888,7 +2373,7 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
           -Math.cos(camYaw) * cosPitch
         ).normalize();
 
-        const camArmDist = 6.2;
+        const camArmDist = 6.4;
         const rightShoulderOffset = right.clone().multiplyScalar(1.65);
         const playerHead = pGroup.position.clone().add(new THREE.Vector3(0, 2.0, 0));
 
@@ -1903,16 +2388,28 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
         camera.position.y = THREE.MathUtils.damp(camera.position.y, targetCamPos.y, 22, dt);
         camera.position.z = THREE.MathUtils.damp(camera.position.z, targetCamPos.z, 22, dt);
 
-        const lookTarget = playerHead.clone().add(rightShoulderOffset.clone().multiplyScalar(0.4)).add(lookDir.clone().multiplyScalar(35));
+        const lookTarget = playerHead
+          .clone()
+          .add(rightShoulderOffset.clone().multiplyScalar(0.4))
+          .add(lookDir.clone().multiplyScalar(35));
         camera.lookAt(lookTarget);
 
-        // Loot Pickups
-        goldPickupsRef.current.forEach((cp) => {
+        // Check Weapon Crate Proximity Prompt
+        let activePrompt: string | null = null;
+        worldPickupsRef.current.forEach((cp) => {
           if (cp.collected) return;
           const dist = Math.hypot(pGroup.position.x - cp.x, pGroup.position.z - cp.z);
           const yDist = Math.abs(pGroup.position.y - cp.baseY);
 
-          if (dist < 2.5 && yDist < 3.2) {
+          if (cp.type === 'weapon_crate' && cp.weaponIdToUnlock) {
+            if (dist < 3.8 && yDist < 3.0) {
+              const targetW = weaponsRef.current.find((w) => w.id === cp.weaponIdToUnlock);
+              activePrompt = `Press [E] to unlock ${targetW?.name || 'Weapon'} (${targetW?.hanziName})!`;
+            }
+          }
+
+          // Auto-pickup items (Coins, Chests, Slurp, Ammo)
+          if (dist < 2.6 && yDist < 3.2 && cp.type !== 'weapon_crate') {
             cp.collected = true;
             scene.remove(cp.group);
             sounds.playSuccess();
@@ -1923,35 +2420,36 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
               setWeapons((prev) => prev.map((w) => ({ ...w, currentAmmo: w.maxAmmo })));
               onUpdatePlayerRef.current((prev) => ({
                 ...prev,
-                vCoins: prev.vCoins + 60,
-                xp: prev.xp + 50,
+                vCoins: prev.vCoins + 75,
+                xp: prev.xp + 60,
               }));
-              addCombatTextRef.current(`🏆 CHEST! +60 V-COINS!`, true);
+              addCombatTextRef.current(`🏆 CHEST! +75 V-COINS!`, true);
               setFeedbackBanner({
-                text: '🏆 Opened Loot Chest! +60 V-Coins · 100% Shield · Weapons Reloaded!',
+                text: '🏆 Opened Loot Chest! +75 V-Coins · 100% Shield · All Weapons Reloaded!',
                 type: 'success',
               });
             } else if (cp.type === 'slurp') {
-              playerShieldRef.current = Math.min(100, playerShieldRef.current + 35);
+              playerShieldRef.current = Math.min(100, playerShieldRef.current + 40);
               setPlayerShield(playerShieldRef.current);
-              addCombatTextRef.current(`+35 SHIELD!`, false);
-              setFeedbackBanner({ text: '🥤 Slurp Keg Consumed (+35 Shield)!', type: 'success' });
+              addCombatTextRef.current(`+40 SHIELD!`, false);
+              setFeedbackBanner({ text: '🥤 Slurp Keg Consumed (+40 Shield)!', type: 'success' });
             } else if (cp.type === 'ammo') {
               setWeapons((prev) => prev.map((w) => ({ ...w, currentAmmo: w.maxAmmo })));
-              onUpdatePlayerRef.current((prev) => ({ ...prev, vCoins: prev.vCoins + 20 }));
+              onUpdatePlayerRef.current((prev) => ({ ...prev, vCoins: prev.vCoins + 25 }));
               addCombatTextRef.current(`ALL WEAPONS RELOADED!`, false);
-              setFeedbackBanner({ text: '📦 Tactical Ammo Crate! Weapons reloaded + 20 V-Coins!', type: 'success' });
+              setFeedbackBanner({ text: '📦 Tactical Ammo Crate! Weapons reloaded + 25 V-Coins!', type: 'success' });
             } else {
               onUpdatePlayerRef.current((prev) => ({
                 ...prev,
-                vCoins: prev.vCoins + 35,
-                xp: prev.xp + 25,
+                vCoins: prev.vCoins + 40,
+                xp: prev.xp + 30,
               }));
-              addCombatTextRef.current(`+35 V-COINS!`, true);
-              setFeedbackBanner({ text: '🪙 Golden Medallion (+35 V-Coins)!', type: 'success' });
+              addCombatTextRef.current(`+40 V-COINS!`, true);
+              setFeedbackBanner({ text: '🪙 Golden Medallion (+40 V-Coins)!', type: 'success' });
             }
           }
         });
+        setNearbyChestPrompt(activePrompt);
 
         // Shield Drops from Eliminated Bots
         potionDropsRef.current.forEach((pot) => {
@@ -2014,7 +2512,7 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
             const bot = enemiesRef.current[i];
             const botCenter = bot.group.position.clone().add(new THREE.Vector3(0, 1.4, 0));
 
-            if (b.mesh.position.distanceTo(botCenter) < (bot.isBoss ? 2.5 : 1.7)) {
+            if (b.mesh.position.distanceTo(botCenter) < (bot.isBoss ? 2.6 : 1.7)) {
               bot.hp -= b.damage;
               sounds.playDamage();
               addCombatTextRef.current(`-${b.damage}`, true);
@@ -2035,11 +2533,7 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
                 const potGroup = new THREE.Group();
                 const potMesh = new THREE.Mesh(
                   new THREE.CylinderGeometry(0.35, 0.45, 0.8, 12),
-                  new THREE.MeshStandardMaterial({
-                    color: 0x06b6d4,
-                    emissive: 0x06b6d4,
-                    emissiveIntensity: 0.6,
-                  })
+                  new THREE.MeshStandardMaterial({ color: 0x06b6d4, emissive: 0x06b6d4, emissiveIntensity: 0.6 })
                 );
                 potGroup.add(potMesh);
                 potGroup.position.copy(botCenter);
@@ -2065,12 +2559,17 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
         return true;
       });
 
-      // Update Bots AI
+      // Update Bots AI & Animations
       enemiesRef.current.forEach((bot) => {
         if (!pGroup) return;
 
+        // Drone spinning ring animation
+        if (bot.spinningRing) {
+          bot.spinningRing.rotation.z += dt * 5.0;
+        }
+
         const distToPlayer = bot.group.position.distanceTo(pGroup.position);
-        if (distToPlayer < 95) {
+        if (distToPlayer < 100) {
           const toPlayer = new THREE.Vector3().subVectors(pGroup.position, bot.group.position).normalize();
 
           bot.strafeTimer -= dt * 60;
@@ -2081,25 +2580,32 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
 
           const strafeVec = new THREE.Vector3(-toPlayer.z, 0, toPlayer.x).multiplyScalar(bot.strafeDir * 0.05);
 
-          if (distToPlayer > 20) {
+          if (distToPlayer > 18) {
             bot.group.position.addScaledVector(toPlayer, bot.speed);
           }
           bot.group.position.add(strafeVec);
 
           bot.group.rotation.y = Math.atan2(toPlayer.x, toPlayer.z);
 
-          bot.walkCycle += dt * 8;
-          bot.leftLeg.rotation.x = Math.sin(bot.walkCycle) * 0.4;
-          bot.rightLeg.rotation.x = -Math.sin(bot.walkCycle) * 0.4;
+          if (bot.leftLeg && bot.rightLeg) {
+            bot.walkCycle += dt * 8;
+            bot.leftLeg.rotation.x = Math.sin(bot.walkCycle) * 0.4;
+            bot.rightLeg.rotation.x = -Math.sin(bot.walkCycle) * 0.4;
+          }
+
+          // Drone hover bob
+          if (bot.enemyType === 'drone') {
+            bot.group.position.y = 1.8 + Math.sin(time * 0.004 + bot.group.position.x) * 0.4;
+          }
 
           bot.fireCooldown -= dt * 60;
-          if (bot.fireCooldown <= 0 && distToPlayer < 65) {
+          if (bot.fireCooldown <= 0 && distToPlayer < 70) {
             bot.fireCooldown = 85 + Math.random() * 55;
 
             const enemyBulletOrigin = bot.group.position.clone().add(new THREE.Vector3(0, 1.6, 0));
             const enemyFireDir = new THREE.Vector3().subVectors(pGroup.position, bot.group.position).normalize();
-            enemyFireDir.x += (Math.random() - 0.5) * 0.09;
-            enemyFireDir.z += (Math.random() - 0.5) * 0.09;
+            enemyFireDir.x += (Math.random() - 0.5) * 0.08;
+            enemyFireDir.z += (Math.random() - 0.5) * 0.08;
             enemyFireDir.normalize();
 
             const ebGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.7, 8);
@@ -2113,10 +2619,10 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
             bulletsRef.current.push({
               mesh: ebMesh,
               direction: enemyFireDir,
-              speed: 45,
+              speed: 46,
               life: 55,
               isPlayer: false,
-              damage: bot.isBoss ? 20 : 10,
+              damage: bot.isBoss ? 22 : 11,
             });
           }
         }
@@ -2151,7 +2657,7 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
     };
   }, []);
 
-  // Advance to Next Level (1 to 10)
+  // Advance to Next Level (1 to 15)
   const handleNextWave = () => {
     const nextW = currentWave + 1;
     setCurrentWave(nextW);
@@ -2185,20 +2691,20 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
     playerHpRef.current = 100;
     playerShieldRef.current = 50;
     setIsDefeated(false);
-    setStormRadius(160);
-    setStormSeconds(45);
+    setStormRadius(180);
+    setStormSeconds(50);
     spawnWaveRef.current(currentWave);
   };
 
-  const hpPercent = Math.max(0, Math.min(100, Math.round(playerHp)));
-  const shieldPercent = Math.max(0, Math.min(100, Math.round(playerShield)));
-  const activeW = weapons[activeWeaponIdx] || weapons[0];
   const currentWaveConfig = WAVE_LEVELS[Math.min(currentWave - 1, WAVE_LEVELS.length - 1)] || WAVE_LEVELS[0];
+  const hpPercent = Math.max(0, Math.min(100, playerHp));
+  const shieldPercent = Math.max(0, Math.min(100, playerShield));
+  const activeW = weapons[activeWeaponIdx] || weapons[0];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-3 space-y-3">
+    <div className="relative w-full space-y-4 select-none">
       {/* 3D FORTNITE WORLD VIEWPORT */}
-      <div className="relative bg-slate-950 border-2 border-cyan-500/40 rounded-3xl overflow-hidden shadow-2xl h-[500px] md:h-[600px]">
+      <div className="relative bg-slate-950 border-2 border-cyan-500/40 rounded-3xl overflow-hidden shadow-2xl h-[520px] md:h-[620px]">
         {/* Three.js Canvas Container */}
         <div ref={mountRef} className="w-full h-full cursor-crosshair" />
 
@@ -2226,6 +2732,14 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
           </div>
         ))}
 
+        {/* NEARBY WEAPON CRATE PROMPT */}
+        {nearbyChestPrompt && !isVictory && !isDefeated && (
+          <div className="absolute top-24 left-1/2 -translate-x-1/2 px-6 py-2.5 rounded-full bg-amber-500 text-slate-950 font-black text-xs md:text-sm shadow-2xl flex items-center gap-2 animate-bounce z-20">
+            <span>📦</span>
+            <span>{nearbyChestPrompt}</span>
+          </div>
+        )}
+
         {/* FEEDBACK BANNER */}
         {feedbackBanner && (
           <div
@@ -2245,7 +2759,7 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
         <div className="absolute top-4 inset-x-4 flex justify-between items-start pointer-events-none z-10">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
             <div className="bg-slate-900/85 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-cyan-500/50 text-cyan-300 text-xs font-black shadow-lg">
-              <span className="text-amber-400 mr-1.5">⚡ LEVEL {currentWave}/10:</span>
+              <span className="text-amber-400 mr-1.5">⚡ LEVEL {currentWave}/15:</span>
               <span className="text-white">{currentWaveConfig.title.split(': ')[1] || 'Battle Island'}</span>
             </div>
             <div className="bg-slate-900/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-purple-500/40 text-purple-300 text-xs font-black shadow-lg flex items-center gap-2">
@@ -2280,7 +2794,7 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
               <span>OUT OF AMMO!</span>
             </div>
             <div className="text-xs text-rose-200 text-center font-medium">
-              Press <span className="font-bold underline text-white">[R]</span> for quick reload, or answer Mandarin below to earn <span className="font-bold text-amber-300">WEAPON UPGRADE POINTS</span>!
+              Press <span className="font-bold underline text-white">[R]</span> for quick reload, or answer Chinese / Math below to earn <span className="font-bold text-amber-300">WEAPON UPGRADE POINTS</span>!
             </div>
             <button
               onClick={handleQuickReload}
@@ -2316,7 +2830,7 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
           </div>
         </div>
 
-        {/* BOTTOM-RIGHT: 5-SLOT WEAPON INVENTORY HOTBAR WITH UPGRADE STATUS */}
+        {/* BOTTOM-RIGHT: 5-SLOT WEAPON INVENTORY HOTBAR WITH UNLOCK & UPGRADE STATUS */}
         <div className="absolute bottom-4 right-4 z-10 flex items-center gap-1.5 pointer-events-auto">
           {weapons.map((w, idx) => {
             const isCur = idx === activeWeaponIdx;
@@ -2327,34 +2841,43 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
               <button
                 key={w.id}
                 onClick={() => handleSelectWeapon(idx)}
+                title={w.isUnlocked ? `${w.name} (Slot ${idx + 1})` : `LOCKED: Find at ${w.unlockLocation}`}
                 className={`relative flex flex-col items-center justify-between p-1.5 rounded-xl border-2 transition-all w-14 md:w-16 h-18 shadow-lg backdrop-blur-md ${
-                  isCur
+                  !w.isUnlocked
+                    ? 'border-slate-800 bg-slate-950/80 opacity-50 cursor-not-allowed'
+                    : isCur
                     ? `${rConfig.border} ${rConfig.bg} scale-105 shadow-[0_0_15px_${rConfig.glow}]`
                     : 'border-slate-800 bg-slate-900/70 opacity-70 hover:opacity-100 hover:border-slate-600'
                 }`}
               >
                 <div className="w-full flex justify-between items-center text-[10px] font-black text-slate-400">
                   <span className="bg-slate-950/80 px-1 rounded text-cyan-400">{idx + 1}</span>
-                  <span className="text-[9px] uppercase tracking-tighter text-amber-300">
-                    {'★'.repeat(w.stars)}
-                  </span>
+                  {w.isUnlocked ? (
+                    <span className="text-[9px] uppercase tracking-tighter text-amber-300">
+                      {'★'.repeat(w.stars)}
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-slate-500">🔒</span>
+                  )}
                 </div>
 
                 <div className="text-[10px] font-black text-center truncate w-full text-slate-200">
-                  {w.name.split(' ')[0]}
+                  {w.isUnlocked ? w.name.split(' ')[0] : 'Locked'}
                 </div>
 
                 <div className="text-[10px] font-black text-cyan-300">
-                  {w.currentAmmo}/{w.maxAmmo}
+                  {w.isUnlocked ? `${w.currentAmmo}/${w.maxAmmo}` : 'FIND'}
                 </div>
 
                 {/* Upgrade progress mini-bar */}
-                <div className="w-full h-1 bg-slate-950 rounded-full overflow-hidden mt-0.5">
-                  <div
-                    className="h-full bg-gradient-to-r from-cyan-400 to-amber-400 transition-all"
-                    style={{ width: `${progressPercent}%` }}
-                  />
-                </div>
+                {w.isUnlocked && (
+                  <div className="w-full h-1 bg-slate-950 rounded-full overflow-hidden mt-0.5">
+                    <div
+                      className="h-full bg-gradient-to-r from-cyan-400 to-amber-400 transition-all"
+                      style={{ width: `${progressPercent}%` }}
+                    />
+                  </div>
+                )}
 
                 {isCur && (
                   <div className="absolute -top-1.5 -right-1.5 w-3 h-3 rounded-full bg-cyan-400 border border-slate-950 shadow-sm" />
@@ -2387,14 +2910,16 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
                 {currentWaveConfig.title}
               </p>
               <p className="text-xs text-slate-300 mb-4 leading-relaxed">
-                Aim and shoot with your mouse. Use <span className="font-bold text-white">WASD</span> to sprint,{' '}
-                <span className="font-bold text-white">SPACE</span> to climb 45° ramps, and answer Mandarin questions to forge weapon upgrades!
+                Aim and shoot with mouse. Use <span className="font-bold text-white">WASD</span> to sprint,{' '}
+                <span className="font-bold text-amber-300">DOUBLE SPACE</span> to Double Jump, and explore the map to find weapon crates!
               </p>
-              <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-400 mb-4 bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+              <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-400 mb-4 bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-left">
                 <div><span className="text-cyan-400 font-bold">W A S D</span> : Sprint</div>
-                <div><span className="text-cyan-400 font-bold">SPACE</span> : Jump / Climb</div>
+                <div><span className="text-amber-400 font-bold">SPACE x2</span> : Double Jump</div>
+                <div><span className="text-cyan-400 font-bold">E Key</span> : Open Crate</div>
                 <div><span className="text-cyan-400 font-bold">1 - 5</span> : Switch Guns</div>
                 <div><span className="text-amber-400 font-bold">R Key</span> : Tactical Reload</div>
+                <div><span className="text-emerald-400 font-bold">Ramps</span> : 100% Climbable</div>
               </div>
               <button
                 onClick={() => mountRef.current?.requestPointerLock?.()}
@@ -2406,23 +2931,23 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
           </div>
         )}
 
-        {/* VICTORY OVERLAY (Supports all 10 Waves + Grand Champion) */}
+        {/* VICTORY OVERLAY (Supports all 15 Waves + Grand Sovereign Champion) */}
         {isVictory && (
           <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-md flex flex-col items-center justify-center z-30 p-6 text-center">
             <div className="bg-gradient-to-b from-slate-900 to-slate-950 border-2 border-amber-500 p-8 rounded-3xl shadow-[0_0_50px_rgba(245,158,11,0.3)] max-w-md">
               <div className="text-5xl mb-2 animate-bounce">
-                {currentWave >= 10 ? '👑' : '🏆'}
+                {currentWave >= 15 ? '👑' : '🏆'}
               </div>
               <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-400 mb-1">
-                {currentWave >= 10 ? 'GRAND SOVEREIGN CHAMPION!' : 'WAVE CONQUERED!'}
+                {currentWave >= 15 ? 'GRAND SOVEREIGN CHAMPION!' : 'WAVE CONQUERED!'}
               </h2>
               <p className="text-sm font-bold text-cyan-300 mb-2">
                 {currentWaveConfig.title} Cleared!
               </p>
               <p className="text-xs text-slate-300 mb-5">
-                {currentWave >= 10
-                  ? 'Incredible mastery! You conquered all 10 Battle Royale danger levels and mastered Mandarin combat arts!'
-                  : `You defeated all squad bots and the ${currentWaveConfig.bossName}! Prepare for the next level!`}
+                {currentWave >= 15
+                  ? 'Incredible mastery! You conquered all 15 Battle Royale danger levels and mastered Mandarin & Math combat arts!'
+                  : `You defeated all squad rivals and the ${currentWaveConfig.bossName}! Prepare for the next level!`}
               </p>
 
               <div className="bg-slate-950/70 p-3 rounded-xl border border-slate-800 mb-5 text-xs flex justify-around">
@@ -2436,12 +2961,12 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
                 </div>
                 <div>
                   <div className="text-slate-400 text-[10px]">PROGRESS</div>
-                  <div className="text-emerald-400 font-black">{currentWave}/10 LEVELS</div>
+                  <div className="text-emerald-400 font-black">{currentWave}/15 LEVELS</div>
                 </div>
               </div>
 
               <div className="flex justify-center gap-3">
-                {currentWave < 10 ? (
+                {currentWave < 15 ? (
                   <button
                     onClick={handleNextWave}
                     className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black text-sm rounded-xl shadow-lg hover:brightness-110 active:scale-95 transition-all"
@@ -2471,7 +2996,7 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
               <div className="text-5xl mb-2">☠️</div>
               <h2 className="text-2xl font-black text-rose-400 mb-1">ELIMINATED</h2>
               <p className="text-xs text-slate-300 mb-4">
-                You fell in battle on {currentWaveConfig.title}. Remember to climb high-ground ramps and answer questions below to upgrade your weapons!
+                You fell in battle on {currentWaveConfig.title}. Remember to use <span className="text-amber-300 font-bold">Double Space</span> to leap over enemy fire, climb ramps for high-ground advantage, and answer Chinese & Math questions below!
               </p>
               <button
                 onClick={handleRestartBattle}
@@ -2484,7 +3009,7 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
         )}
       </div>
 
-      {/* MANDARIN MASTERY & WEAPON FORGE STATION (Upgrades Require Chinese Learning!) */}
+      {/* MANDARIN & CHINESE MATH MASTERY WEAPON FORGE STATION */}
       <div className="bg-slate-900/90 border-2 border-cyan-500/40 rounded-2xl p-4 shadow-xl backdrop-blur-md">
         {/* Active Weapon Upgrade Progress Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 border-b border-slate-800 pb-3 mb-3">
@@ -2492,14 +3017,14 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
             <div className="flex items-center gap-2">
               <span className="text-base">⚡</span>
               <h3 className="text-sm font-black text-cyan-300 uppercase tracking-wide">
-                MANDARIN WEAPON FORGE & TACTICAL STATION
+                MANDARIN & CHINESE MATH WEAPON FORGE
               </h3>
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase ${RARITY_COLORS[activeW.rarity].border} ${RARITY_COLORS[activeW.rarity].text} bg-slate-950`}>
                 {activeW.rarity} · TIER {activeW.tier}
               </span>
             </div>
             <p className="text-[11px] text-slate-400">
-              Answer Mandarin questions correctly to earn <span className="text-amber-300 font-bold">Mastery Points</span>. Reach the target to ascend {activeW.name} to the next tier! Wrong answers deduct 1 point!
+              Answer Chinese & Math questions correctly to earn <span className="text-amber-300 font-bold">Mastery Points</span>. Reach the target to ascend {activeW.name} to the next tier (+25% damage & capacity)! Wrong answers deduct 1 point!
             </p>
           </div>
 
@@ -2519,7 +3044,7 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
                   className={`w-3.5 h-3.5 rounded-md border transition-all ${
                     i < activeW.upgradeProgress
                       ? 'bg-amber-400 border-amber-300 shadow-[0_0_8px_#f59e0b]'
-                      : 'bg-slate-800 border-slate-700'
+                      : 'bg-slate-900 border-slate-700'
                   }`}
                 />
               ))}
@@ -2527,134 +3052,152 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
           </div>
         </div>
 
-        {/* Mandarin Question Card */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80 mb-3">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => speakChinese(currentQ.hanzi)}
-              className="w-11 h-11 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 flex items-center justify-center font-bold text-xl border border-cyan-500/40 transition-all active:scale-95"
-              title="Pronounce audio"
-            >
-              🔊
-            </button>
-            <div>
-              <div className="text-2xl font-black text-white tracking-wider flex items-center gap-2">
-                <span>{currentQ.hanzi}</span>
-                {showPinyin && (
-                  <span className="text-sm font-semibold text-cyan-400">({currentQ.pinyin})</span>
-                )}
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-400 uppercase">
-                  {currentQ.category}
+        {/* QUESTION DISPLAY: HANZI, PINYIN & CHINESE ARITHMETIC */}
+        {currentQ && (
+          <div className="space-y-3">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-950/60 p-3 rounded-xl border border-slate-800 gap-2">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl sm:text-3xl font-black text-amber-400 font-mono tracking-wide">
+                  {currentQ.hanzi}
                 </span>
+                {showPinyin && (
+                  <span className="text-sm font-semibold text-cyan-300 font-mono">
+                    [{currentQ.pinyin}]
+                  </span>
+                )}
+                <button
+                  onClick={() => speakChinese(currentQ.hanzi)}
+                  className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+                  title="Listen pronunciation"
+                >
+                  🔊
+                </button>
               </div>
-              <div className="text-xs text-slate-400">Choose the correct English translation to charge your weapon:</div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">
+                  {currentQ.category === 'math' ? '🧮 CHINESE MATH' : '🇨🇳 MANDARIN'}
+                </span>
+                <button
+                  onClick={() => setShowPinyin((p) => !p)}
+                  className="text-[10px] px-2 py-1 rounded border border-slate-700 hover:border-slate-500 text-slate-300"
+                >
+                  {showPinyin ? 'Hide Pinyin' : 'Show Pinyin'}
+                </button>
+                {currentQ.explanation && (
+                  <button
+                    onClick={() => setShowRadicalHint((r) => !r)}
+                    className="text-[10px] px-2 py-1 rounded border border-amber-500/50 text-amber-300 hover:bg-amber-500/20"
+                  >
+                    💡 Hint
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {showRadicalHint && currentQ.explanation && (
+              <div className="text-xs text-amber-200 bg-amber-950/40 border border-amber-500/40 p-2.5 rounded-xl">
+                💡 <span className="font-bold">Grammar & Lore:</span> {currentQ.explanation}
+              </div>
+            )}
+
+            {/* ANSWER OPTIONS (4 Choices) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {currentQ.options.map((opt, idx) => {
+                const isEliminated = eliminatedOptions.includes(idx);
+                const isChosen = selectedAnswer === idx;
+                const isCorrect = idx === currentQ.correctIndex;
+
+                let btnStyle = 'bg-slate-950/80 border-slate-800 hover:border-cyan-500/60 text-slate-200';
+                if (answerState !== 'idle') {
+                  if (isCorrect) {
+                    btnStyle = 'bg-emerald-950/90 border-emerald-500 text-emerald-200 shadow-[0_0_15px_#10b981]';
+                  } else if (isChosen) {
+                    btnStyle = 'bg-rose-950/90 border-rose-500 text-rose-200';
+                  }
+                }
+
+                if (isEliminated) {
+                  return (
+                    <div
+                      key={idx}
+                      className="p-3 rounded-xl border border-slate-900 bg-slate-950/40 text-slate-600 line-through text-xs font-medium cursor-not-allowed"
+                    >
+                      {opt} (Eliminated)
+                    </div>
+                  );
+                }
+
+                return (
+                  <button
+                    key={idx}
+                    disabled={answerState !== 'idle'}
+                    onClick={() => handleAnswerQuestion(idx)}
+                    className={`p-3 rounded-xl border-2 text-left font-bold text-xs sm:text-sm transition-all active:scale-[0.98] ${btnStyle}`}
+                  >
+                    <span className="text-cyan-400 font-mono mr-2">{['A', 'B', 'C', 'D'][idx]}.</span>
+                    {opt}
+                  </button>
+                );
+              })}
             </div>
           </div>
-
-          <div className="flex items-center gap-2 text-xs">
-            <button
-              onClick={() => setShowRadicalHint(!showRadicalHint)}
-              className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 transition-all text-[11px] font-bold"
-            >
-              💡 {showRadicalHint ? 'Hide Hint' : 'Radical Hint'}
-            </button>
-            <button
-              onClick={() => setShowPinyin(!showPinyin)}
-              className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-all text-[11px]"
-            >
-              {showPinyin ? 'Hide Pinyin' : 'Show Pinyin'}
-            </button>
-          </div>
-        </div>
-
-        {/* Radical / Etymology Hint Card */}
-        {showRadicalHint && currentQ.explanation && (
-          <div className="mb-3 p-2.5 bg-amber-950/40 border border-amber-500/30 rounded-xl text-xs text-amber-200 flex items-center gap-2">
-            <span>💡</span>
-            <span>{currentQ.explanation}</span>
-          </div>
         )}
-
-        {/* 4 Multi-Choice Tactical Options */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5">
-          {currentQ.options.map((opt, idx) => {
-            const isEliminated = eliminatedOptions.includes(idx);
-            const isSelected = selectedAnswer === idx;
-            const isCorrect = idx === currentQ.correctIndex;
-
-            let btnStyle = 'bg-slate-800/80 hover:bg-slate-700 text-slate-200 border-slate-700';
-
-            if (isSelected) {
-              if (answerState === 'correct') {
-                btnStyle = 'bg-emerald-600 border-emerald-400 text-white shadow-[0_0_15px_#10b981]';
-              } else if (answerState === 'wrong') {
-                btnStyle = 'bg-rose-600 border-rose-400 text-white';
-              }
-            } else if (answerState !== 'idle' && isCorrect) {
-              btnStyle = 'bg-emerald-600/50 border-emerald-400 text-white';
-            }
-
-            return (
-              <button
-                key={idx}
-                disabled={isEliminated || answerState !== 'idle'}
-                onClick={() => handleAnswerQuestion(idx)}
-                className={`p-3 rounded-xl border-2 font-bold text-xs text-left transition-all flex items-center justify-between ${btnStyle} ${
-                  isEliminated ? 'opacity-30 cursor-not-allowed' : 'active:scale-98'
-                }`}
-              >
-                <span>{opt}</span>
-                <span className="text-[10px] text-slate-400 bg-slate-900/60 px-1.5 py-0.5 rounded">
-                  {idx + 1}
-                </span>
-              </button>
-            );
-          })}
-        </div>
       </div>
 
-      {/* GIMKIT POWER-UP COMBAT SHOP MODAL */}
+      {/* GIMKIT POWER-UP SHOP MODAL */}
       {isShopOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-900 border-2 border-amber-500/60 rounded-3xl p-6 max-w-xl w-full shadow-2xl space-y-4">
-            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+          <div className="bg-slate-900 border-2 border-amber-500 p-6 rounded-3xl shadow-2xl max-w-lg w-full">
+            <div className="flex justify-between items-center mb-4 border-b border-slate-800 pb-3">
               <div>
-                <h3 className="text-lg font-black text-amber-300">TACTICAL POWER-UP SHOP</h3>
-                <p className="text-xs text-slate-400">Earn V-Coins through Mandarin questions and wave victories</p>
+                <h3 className="text-lg font-black text-amber-400 flex items-center gap-2">
+                  <span>🛒</span>
+                  <span>TACTICAL POWER-UP SHOP</span>
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Spend V-Coins earned from eliminating rivals & answering Chinese questions!
+                </p>
               </div>
               <button
                 onClick={() => setIsShopOpen(false)}
-                className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center font-bold"
+                className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white"
               >
                 ✕
               </button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-96 overflow-y-auto pr-1">
+            <div className="space-y-2.5 max-h-[60vh] overflow-y-auto pr-1">
               {POWER_UPS.map((pu) => {
                 const canAfford = player.vCoins >= pu.cost;
                 return (
-                  <button
+                  <div
                     key={pu.id}
-                    disabled={!canAfford}
-                    onClick={() => handleBuyCombatPowerUp(pu)}
-                    className={`p-3.5 rounded-2xl border-2 text-left transition-all flex flex-col justify-between ${
-                      canAfford
-                        ? 'border-amber-500/40 bg-slate-800/80 hover:border-amber-400 hover:bg-slate-800'
-                        : 'border-slate-800 bg-slate-900/50 opacity-40 cursor-not-allowed'
-                    }`}
+                    className="flex justify-between items-center p-3 rounded-xl bg-slate-950/70 border border-slate-800 hover:border-slate-700"
                   >
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <span className="text-2xl">{pu.icon}</span>
-                      <div>
-                        <div className="text-xs font-black text-white">{pu.name}</div>
-                        <div className="text-[10px] text-amber-400 font-bold">{pu.cost} V-Coins</div>
-                      </div>
+                    <div>
+                      <div className="font-bold text-sm text-slate-200">{pu.name}</div>
+                      <div className="text-[11px] text-slate-400">{pu.description}</div>
                     </div>
-                    <p className="text-[11px] text-slate-400 leading-tight">{pu.description}</p>
-                  </button>
+                    <button
+                      disabled={!canAfford}
+                      onClick={() => handleBuyCombatPowerUp(pu)}
+                      className={`px-4 py-2 rounded-xl font-black text-xs transition-all ${
+                        canAfford
+                          ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 hover:brightness-110 active:scale-95'
+                          : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                      }`}
+                    >
+                      {pu.cost} V-COINS
+                    </button>
+                  </div>
                 );
               })}
+            </div>
+
+            <div className="mt-4 pt-3 border-t border-slate-800 flex justify-between items-center text-xs">
+              <span className="text-slate-400">Current Balance:</span>
+              <span className="font-black text-amber-400 text-sm">🪙 {player.vCoins} V-COINS</span>
             </div>
           </div>
         </div>

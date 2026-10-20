@@ -1,6 +1,6 @@
 export type GameView = 'arena' | 'multiplayer' | 'leaderboard' | 'story' | 'dojo' | 'locker' | 'forge' | 'coach';
 
-export type QuestionCategory = 'combat' | 'school' | 'actions' | 'elements' | 'food' | 'phrases';
+export type QuestionCategory = 'combat' | 'school' | 'actions' | 'elements' | 'food' | 'phrases' | 'math';
 
 export interface MandarinQuestion {
   id: string;

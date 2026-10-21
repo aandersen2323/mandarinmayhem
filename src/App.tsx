@@ -12,7 +12,11 @@ import { DojoView } from './components/DojoView';
 import { LockerView } from './components/LockerView';
 import { SquadCoachView } from './components/SquadCoachView';
 import { SkinForgeModal } from './components/SkinForgeModal';
+import { DontLookDownView } from './components/DontLookDownView';
+import { CharacterCustomizerModal } from './components/CharacterCustomizerModal';
+import { DailyChallengeModal } from './components/DailyChallengeModal';
 import { PlayerAccountsModal, getSavedAccounts, saveAllAccounts } from './components/PlayerAccountsModal';
+import { CharacterAvatarConfig } from './types/game';
 
 const STORAGE_KEY_PLAYER = 'cybermandarin_player_v1';
 const STORAGE_KEY_CUSTOM_SKINS = 'cybermandarin_custom_skins_v1';
@@ -24,6 +28,15 @@ export default function App() {
   const [arenaMode, setArenaMode] = useState<'3d' | '2d'>('3d');
   const [isForgeOpen, setIsForgeOpen] = useState<boolean>(false);
   const [isAccountsOpen, setIsAccountsOpen] = useState<boolean>(false);
+  const [isCustomizerOpen, setIsCustomizerOpen] = useState<boolean>(false);
+  const [isDailyChallengeOpen, setIsDailyChallengeOpen] = useState<boolean>(false);
+
+  const handleSaveAvatarConfig = (newConfig: CharacterAvatarConfig) => {
+    setPlayer((prev) => ({
+      ...prev,
+      avatarConfig: newConfig,
+    }));
+  };
 
   const [activeAccountId, setActiveAccountId] = useState<string>(() => {
     if (typeof window !== 'undefined') {
@@ -265,6 +278,8 @@ export default function App() {
         onToggleSound={handleToggleSound}
         onOpenForge={() => setIsForgeOpen(true)}
         onOpenAccounts={() => setIsAccountsOpen(true)}
+        onOpenDailyChallenge={() => setIsDailyChallengeOpen(true)}
+        onOpenCustomizer={() => setIsCustomizerOpen(true)}
       />
 
       {/* Main View Container */}
@@ -318,6 +333,15 @@ export default function App() {
           </div>
         )}
 
+        {currentView === 'dont_look_down' && (
+          <DontLookDownView
+            player={player}
+            equippedSkin={equippedSkin}
+            onUpdatePlayer={handleUpdatePlayer}
+            onExit={() => setCurrentView('arena')}
+          />
+        )}
+
         {currentView === 'multiplayer' && (
           <MultiplayerView
             player={player}
@@ -354,6 +378,7 @@ export default function App() {
             onEquipSkin={handleEquipSkin}
             onBuySkin={handleBuySkin}
             onOpenForge={() => setIsForgeOpen(true)}
+            onOpenCustomizer={() => setIsCustomizerOpen(true)}
           />
         )}
 
@@ -361,6 +386,22 @@ export default function App() {
           <SquadCoachView onEarnCoins={handleEarnCoins} />
         )}
       </main>
+
+      {/* 3D Character Customizer Modal */}
+      <CharacterCustomizerModal
+        isOpen={isCustomizerOpen}
+        onClose={() => setIsCustomizerOpen(false)}
+        player={player}
+        onSaveConfig={handleSaveAvatarConfig}
+      />
+
+      {/* Daily Challenge Modal */}
+      <DailyChallengeModal
+        isOpen={isDailyChallengeOpen}
+        onClose={() => setIsDailyChallengeOpen(false)}
+        player={player}
+        onUpdatePlayer={handleUpdatePlayer}
+      />
 
       {/* Zero-Cost Custom Skin Studio Modal */}
       <SkinForgeModal
@@ -391,28 +432,34 @@ export default function App() {
               Battle Arena
             </button>
             <button
+              onClick={() => setCurrentView('dont_look_down')}
+              className="hover:text-emerald-400 transition-colors text-emerald-300 font-bold"
+            >
+              Don't Look Down (天梯)
+            </button>
+            <button
               onClick={() => setCurrentView('multiplayer')}
               className="hover:text-cyan-400 transition-colors text-cyan-300 font-bold"
             >
               Online PvP
             </button>
             <button
-              onClick={() => setCurrentView('leaderboard')}
+              onClick={() => setIsDailyChallengeOpen(true)}
               className="hover:text-amber-400 transition-colors text-amber-300 font-bold"
             >
-              Leaderboard
+              Daily Mission
+            </button>
+            <button
+              onClick={() => setIsCustomizerOpen(true)}
+              className="hover:text-cyan-400 transition-colors"
+            >
+              Customizer
             </button>
             <button
               onClick={() => setIsAccountsOpen(true)}
               className="hover:text-cyan-400 transition-colors"
             >
               Switch Player
-            </button>
-            <button
-              onClick={() => setCurrentView('coach')}
-              className="hover:text-cyan-400 transition-colors"
-            >
-              Squad Comms
             </button>
             <button
               onClick={() => setIsForgeOpen(true)}

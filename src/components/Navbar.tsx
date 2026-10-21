@@ -1,7 +1,7 @@
 import React from 'react';
 import { GameView, PlayerProfile, SkinItem } from '../types/game';
 import { SkinVisual } from './SkinVisual';
-import { Volume2, VolumeX, Sparkles, Coins, Users, Swords, Trophy } from 'lucide-react';
+import { Volume2, VolumeX, Sparkles, Coins, Users, Swords, Trophy, Calendar, Shirt, ArrowUpRight } from 'lucide-react';
 
 interface NavbarProps {
   currentView: GameView;
@@ -11,6 +11,8 @@ interface NavbarProps {
   onToggleSound: () => void;
   onOpenForge: () => void;
   onOpenAccounts: () => void;
+  onOpenDailyChallenge: () => void;
+  onOpenCustomizer: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -21,9 +23,15 @@ export const Navbar: React.FC<NavbarProps> = ({
   onToggleSound,
   onOpenForge,
   onOpenAccounts,
+  onOpenDailyChallenge,
+  onOpenCustomizer,
 }) => {
-  const navItems: { id: GameView; label: string; hanzi: string }[] = [
+  const todayDateStr = new Date().toISOString().slice(0, 10);
+  const hasDailyAvailable = !player.dailyChallenge || player.dailyChallenge.date !== todayDateStr || !player.dailyChallenge.completed;
+
+  const navItems: { id: GameView; label: string; hanzi: string; highlight?: boolean }[] = [
     { id: 'arena', label: 'Battle Arena', hanzi: '竞技场' },
+    { id: 'dont_look_down', label: "Don't Look Down", hanzi: '天梯飞跃', highlight: true },
     { id: 'multiplayer', label: 'Online PvP', hanzi: '多人对战' },
     { id: 'leaderboard', label: 'Leaderboard', hanzi: '排行榜' },
     { id: 'story', label: 'Story Quest', hanzi: '故事剧情' },
@@ -121,6 +129,32 @@ export const Navbar: React.FC<NavbarProps> = ({
               />
             </div>
           </div>
+
+          {/* Daily Challenge Quick Button */}
+          <button
+            onClick={onOpenDailyChallenge}
+            className="relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-950/60 border border-amber-500/40 hover:border-amber-400 text-amber-300 font-bold text-xs transition-all shadow-sm active:scale-95"
+            title="Daily Mandarin Challenge & Rewards"
+          >
+            <Calendar size={13} className="text-amber-400" />
+            <span className="hidden lg:inline">Daily Mission</span>
+            {hasDailyAvailable && (
+              <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+              </span>
+            )}
+          </button>
+
+          {/* Character 3D Customizer CTA */}
+          <button
+            onClick={onOpenCustomizer}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-900 border border-cyan-500/30 hover:border-cyan-400 text-cyan-300 hover:text-white font-bold text-xs transition-all shadow-sm active:scale-95"
+            title="Character Customizer (Hats, Robes, Hair, Wings)"
+          >
+            <Shirt size={13} className="text-cyan-400" />
+            <span className="hidden lg:inline">Customizer</span>
+          </button>
 
           {/* Sound Toggle */}
           <button

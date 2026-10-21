@@ -1,4 +1,4 @@
-export type GameView = 'arena' | 'multiplayer' | 'leaderboard' | 'story' | 'dojo' | 'locker' | 'forge' | 'coach';
+export type GameView = 'arena' | 'dont_look_down' | 'multiplayer' | 'leaderboard' | 'story' | 'dojo' | 'locker' | 'forge' | 'coach';
 
 export type QuestionCategory = 'combat' | 'school' | 'actions' | 'elements' | 'food' | 'phrases' | 'math';
 
@@ -26,6 +26,62 @@ export interface MandarinQuestion {
   explanation?: string;
 }
 
+export interface CharacterAvatarConfig {
+  baseModelId: 'agent_cyber' | 'cyber_ronin' | 'mecha_pilot' | 'shadow_ninja' | 'mystic_monk';
+  hairstyleId: 'spiky_cyber' | 'samurai_topknot' | 'tech_visor_helm' | 'dragon_horns' | 'neon_fade';
+  hatId: 'none' | 'bamboo_conical' | 'cyber_goggles' | 'phoenix_crown' | 'tactical_beret' | 'golden_headband';
+  armorId: 'stealth_nanosuit' | 'cyber_hanfu' | 'heavy_mecha_plate' | 'dragonslayer_robe' | 'streetwear_hoodie';
+  backItemId: 'none' | 'cyber_katana' | 'plasma_wings' | 'qi_scroll' | 'quantum_backpack' | 'energy_blades';
+  primaryColor: string;
+  secondaryColor: string;
+  glowColor: string;
+}
+
+export interface CosmeticOption {
+  id: string;
+  slot: 'base' | 'hair' | 'hat' | 'armor' | 'back';
+  name: string;
+  hanziName: string;
+  pinyinName: string;
+  description: string;
+  unlockRequirement: string;
+  unlockedByDefault?: boolean;
+  requiredTier?: MandarinTier;
+  icon?: string;
+}
+
+export interface MandarinPowerUp {
+  id: string;
+  name: string;
+  hanziName: string;
+  pinyinName: string;
+  description: string;
+  category: QuestionCategory | 'tier' | 'streak';
+  masteryThreshold: number;
+  unlockRequirementText: string;
+  effectType: 'speed_boost' | 'score_multiplier' | 'hint_reveal' | 'qi_shield' | 'time_freeze' | 'feather_leap';
+  durationSeconds: number;
+  cooldownSeconds: number;
+  icon: string;
+  color: string;
+}
+
+export interface DailyChallenge {
+  id: string;
+  dayIndex: number; // 0-6
+  title: string;
+  hanziTitle: string;
+  topic: string;
+  topicPinyin: string;
+  description: string;
+  categoryFilter?: QuestionCategory;
+  targetCount: number;
+  rewardXp: number;
+  rewardCoins: number;
+  rewardCosmeticName: string;
+  rewardCosmeticId: string;
+}
+
 export interface PlayerProfile {
   name: string;
   level: number;
@@ -40,6 +96,17 @@ export interface PlayerProfile {
   soundEnabled: boolean;
   pinyinDefaultVisible: boolean;
   mandarinMastery?: MandarinMastery;
+  avatarConfig?: CharacterAvatarConfig;
+  unlockedPowerUpIds?: string[];
+  activePowerUpId?: string;
+  unlockedCosmeticIds?: string[];
+  dailyChallenge?: {
+    date: string;
+    progress: number;
+    completed: boolean;
+    claimed: boolean;
+  };
+  dontLookDownBestAltitude?: number;
 }
 
 export type SkinRarity = 'uncommon' | 'rare' | 'epic' | 'legendary';

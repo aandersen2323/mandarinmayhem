@@ -1765,19 +1765,29 @@ export const Arena3DView: React.FC<Arena3DViewProps> = ({
     const pGroup = new THREE.Group();
     playerGroupRef.current = pGroup;
 
-    const suitColorHex = equippedSkin?.accentColor
+    const suitColorHex = player.avatarConfig?.primaryColor
+      ? parseInt(player.avatarConfig.primaryColor.replace('#', '0x'))
+      : equippedSkin?.accentColor
       ? parseInt(equippedSkin.accentColor.replace('#', '0x'))
       : 0x0284c7;
+
+    const darkAccentHex = player.avatarConfig?.secondaryColor
+      ? parseInt(player.avatarConfig.secondaryColor.replace('#', '0x'))
+      : 0x0b1120;
+
+    const visorGlowHex = player.avatarConfig?.glowColor
+      ? parseInt(player.avatarConfig.glowColor.replace('#', '0x'))
+      : 0x22d3ee;
 
     const suitMat = new THREE.MeshStandardMaterial({
       color: suitColorHex,
       metalness: 0.65,
       roughness: 0.3,
     });
-    const armorDarkMat = new THREE.MeshStandardMaterial({ color: 0x0b1120, metalness: 0.9, roughness: 0.2 });
+    const armorDarkMat = new THREE.MeshStandardMaterial({ color: darkAccentHex, metalness: 0.9, roughness: 0.2 });
     const visorMat = new THREE.MeshStandardMaterial({
-      color: 0x22d3ee,
-      emissive: 0x22d3ee,
+      color: visorGlowHex,
+      emissive: visorGlowHex,
       emissiveIntensity: 0.85,
       metalness: 0.95,
       roughness: 0.1,

@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   Layers,
   Award,
+  Shirt,
 } from 'lucide-react';
 
 interface LockerViewProps {
@@ -19,6 +20,7 @@ interface LockerViewProps {
   onEquipSkin: (skinId: string) => void;
   onBuySkin: (skin: SkinItem) => void;
   onOpenForge: () => void;
+  onOpenCustomizer?: () => void;
 }
 
 export const LockerView: React.FC<LockerViewProps> = ({
@@ -28,6 +30,7 @@ export const LockerView: React.FC<LockerViewProps> = ({
   onEquipSkin,
   onBuySkin,
   onOpenForge,
+  onOpenCustomizer,
 }) => {
   const battlePassTiers = [
     { level: 1, title: 'Starter Operative', reward: 'Neon Shadow Ninja' },
@@ -55,18 +58,28 @@ export const LockerView: React.FC<LockerViewProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-1.5 bg-slate-950 px-3.5 py-1.5 rounded-xl border border-amber-500/30 text-amber-300 font-mono text-sm font-bold shadow-sm">
             <Coins size={16} className="text-amber-400" />
             <span>{player.vCoins} V-Coins</span>
           </div>
+
+          {onOpenCustomizer && (
+            <button
+              onClick={onOpenCustomizer}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-cyan-500/30 text-cyan-300 font-bold text-xs uppercase tracking-wider transition-all active:scale-95 shadow-sm"
+            >
+              <Shirt size={14} className="text-cyan-400" />
+              <span>3D Customizer</span>
+            </button>
+          )}
 
           <button
             onClick={onOpenForge}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(6,182,212,0.3)] transition-all active:scale-95"
           >
             <Sparkles size={14} />
-            <span>AI Skin Crafter (1K-4K)</span>
+            <span>Skin Crafter</span>
           </button>
         </div>
       </div>

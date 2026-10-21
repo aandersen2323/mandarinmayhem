@@ -2,6 +2,8 @@ import express from 'express';
 import http from 'http';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
+import crypto from 'crypto';
 import dotenv from 'dotenv';
 import { WebSocketServer, WebSocket } from 'ws';
 
@@ -14,6 +16,217 @@ const app = express();
 app.use(express.json({ limit: '10mb' }));
 
 const port = process.env.PORT || 3000;
+
+// ==========================================
+// SECURE USER ACCOUNT & LOGIN PERSISTENCE
+// ==========================================
+interface ServerAccount {
+  id: string;
+  name: string;
+  avatarId: string;
+  passwordHash: string;
+  token?: string;
+  lastPlayed: number;
+  profile: any;
+}
+
+const ACCOUNTS_FILE = path.join(__dirname, 'server_accounts.json');
+
+function hashPassword(pwd: string): string {
+  return crypto.createHash('sha256').update(pwd.trim()).digest('hex');
+}
+
+function loadAccounts(): Map<string, ServerAccount> {
+  const map = new Map<string, ServerAccount>();
+  try {
+    if (fs.existsSync(ACCOUNTS_FILE)) {
+      const list = JSON.parse(fs.readFileSync(ACCOUNTS_FILE, 'utf-8'));
+      if (Array.isArray(list)) {
+        for (const item of list) {
+          map.set(item.name.toLowerCase(), item);
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to read accounts file:', e);
+  }
+
+  // Ensure default Austin account exists with default PIN (1234)
+  if (!map.has('austin')) {
+    const austinAcc: ServerAccount = {
+      id: 'acc_austin',
+      name: 'Austin',
+      avatarId: 'skin_neon_ninja',
+      passwordHash: hashPassword('1234'),
+      lastPlayed: Date.now(),
+      profile: {
+        name: 'Austin',
+        level: 1,
+        xp: 0,
+        maxXp: 100,
+        vCoins: 150,
+        equippedSkinId: 'skin_neon_ninja',
+        unlockedSkinIds: ['skin_neon_ninja'],
+        highestStreak: 0,
+        arenaVictories: 0,
+        completedStoryNodes: [],
+        soundEnabled: true,
+        pinyinDefaultVisible: true,
+        mandarinMastery: {
+          tier: 1,
+          tierName: 'Tier 1: Initiate (基础初级 - HSK 1)',
+          questionsAnswered: 0,
+          correctAnswers: 0,
+          consecutiveCorrect: 0,
+          recentMistakes: [],
+          masteryPoints: 0,
+        },
+      },
+    };
+    map.set('austin', austinAcc);
+    try {
+      fs.writeFileSync(ACCOUNTS_FILE, JSON.stringify(Array.from(map.values()), null, 2));
+    } catch (_) {}
+  }
+  return map;
+}
+
+function persistAccounts(map: Map<string, ServerAccount>) {
+  try {
+    fs.writeFileSync(ACCOUNTS_FILE, JSON.stringify(Array.from(map.values()), null, 2));
+  } catch (err) {
+    console.error('Failed to save accounts file:', err);
+  }
+}
+
+const accountsDb = loadAccounts();
+
+// AUTH REST ENDPOINTS
+app.get('/api/auth/accounts', (_req, res) => {
+  const list = Array.from(accountsDb.values()).map((a) => ({
+    id: a.id,
+    name: a.name,
+    avatarId: a.avatarId,
+    lastPlayed: a.lastPlayed,
+    hasPassword: true,
+  }));
+  res.json({ accounts: list });
+});
+
+app.post('/api/auth/register', (req, res) => {
+  const { username, password, avatarId, profile } = req.body;
+  const nameTrimmed = (username || '').trim();
+  const pwdTrimmed = (password || '').trim();
+
+  if (!nameTrimmed || nameTrimmed.length < 2) {
+    return res.status(400).json({ success: false, error: 'Codename must be at least 2 characters long!' });
+  }
+  if (!pwdTrimmed || pwdTrimmed.length < 3) {
+    return res.status(400).json({ success: false, error: 'Password or PIN must be at least 3 characters or numbers!' });
+  }
+
+  const key = nameTrimmed.toLowerCase();
+  if (accountsDb.has(key)) {
+    return res.status(400).json({
+      success: false,
+      error: `Player codename "${nameTrimmed}" is already registered. Please enter your password to log in, or choose a different name!`,
+    });
+  }
+
+  const token = crypto.randomUUID();
+  const initialMastery = profile?.mandarinMastery || {
+    tier: 1,
+    tierName: 'Tier 1: Initiate (基础初级 - HSK 1)',
+    questionsAnswered: 0,
+    correctAnswers: 0,
+    consecutiveCorrect: 0,
+    recentMistakes: [],
+    masteryPoints: 0,
+  };
+
+  const newAcc: ServerAccount = {
+    id: `acc_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    name: nameTrimmed,
+    avatarId: avatarId || 'skin_neon_ninja',
+    passwordHash: hashPassword(pwdTrimmed),
+    token,
+    lastPlayed: Date.now(),
+    profile: profile || {
+      name: nameTrimmed,
+      level: 1,
+      xp: 0,
+      maxXp: 100,
+      vCoins: 150,
+      equippedSkinId: avatarId || 'skin_neon_ninja',
+      unlockedSkinIds: [avatarId || 'skin_neon_ninja'],
+      highestStreak: 0,
+      arenaVictories: 0,
+      completedStoryNodes: [],
+      soundEnabled: true,
+      pinyinDefaultVisible: true,
+      mandarinMastery: initialMastery,
+    },
+  };
+
+  accountsDb.set(key, newAcc);
+  persistAccounts(accountsDb);
+
+  res.json({ success: true, token, account: newAcc });
+});
+
+app.post('/api/auth/login', (req, res) => {
+  const { username, password } = req.body;
+  const nameTrimmed = (username || '').trim();
+  const pwdTrimmed = (password || '').trim();
+
+  if (!nameTrimmed || !pwdTrimmed) {
+    return res.status(400).json({ success: false, error: 'Both username and password/PIN are required!' });
+  }
+
+  const key = nameTrimmed.toLowerCase();
+  const acc = accountsDb.get(key);
+
+  if (!acc) {
+    return res.status(404).json({
+      success: false,
+      error: `No player account found with codename "${nameTrimmed}". Check spelling or click "Create New Player"!`,
+    });
+  }
+
+  const inputHash = hashPassword(pwdTrimmed);
+  if (acc.passwordHash !== inputHash) {
+    return res.status(401).json({
+      success: false,
+      error: '❌ 密码错误: Incorrect Password or PIN for this player! Access denied.',
+    });
+  }
+
+  const token = crypto.randomUUID();
+  acc.token = token;
+  acc.lastPlayed = Date.now();
+  persistAccounts(accountsDb);
+
+  res.json({ success: true, token, account: acc });
+});
+
+app.post('/api/auth/sync', (req, res) => {
+  const { username, token, profile } = req.body;
+  if (!username) return res.status(400).json({ error: 'Username required' });
+
+  const key = username.trim().toLowerCase();
+  const acc = accountsDb.get(key);
+  if (!acc) return res.status(404).json({ error: 'Account not found' });
+
+  if (acc.token && token && acc.token !== token) {
+    return res.status(403).json({ error: 'Invalid session token' });
+  }
+
+  acc.profile = profile;
+  acc.lastPlayed = Date.now();
+  persistAccounts(accountsDb);
+
+  res.json({ success: true });
+});
 
 // In-Memory Multiplayer State
 interface RemotePlayerState {

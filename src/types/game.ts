@@ -180,6 +180,9 @@ export interface PlayerAccount {
   name: string;
   avatarId: string;
   pin?: string;
+  passwordHash?: string;
+  hasPassword?: boolean;
+  token?: string;
   lastPlayed: number;
   profile: PlayerProfile;
 }

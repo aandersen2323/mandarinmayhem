@@ -16,12 +16,14 @@ import { DontLookDownView } from './components/DontLookDownView';
 import { CharacterCustomizerModal } from './components/CharacterCustomizerModal';
 import { DailyChallengeModal } from './components/DailyChallengeModal';
 import { PlayerAccountsModal, getSavedAccounts, saveAllAccounts } from './components/PlayerAccountsModal';
+import { LoginGateModal } from './components/LoginGateModal';
 import { CharacterAvatarConfig } from './types/game';
 
 const STORAGE_KEY_PLAYER = 'cybermandarin_player_v1';
 const STORAGE_KEY_CUSTOM_SKINS = 'cybermandarin_custom_skins_v1';
 const STORAGE_KEY_ACCOUNTS = 'cybermandarin_accounts_v1';
 const STORAGE_KEY_ACTIVE_ID = 'cybermandarin_active_account_id';
+const STORAGE_KEY_AUTH_TOKEN = 'cybermandarin_auth_token';
 
 export default function App() {
   const [currentView, setCurrentView] = useState<GameView>('arena');
@@ -31,11 +33,31 @@ export default function App() {
   const [isCustomizerOpen, setIsCustomizerOpen] = useState<boolean>(false);
   const [isDailyChallengeOpen, setIsDailyChallengeOpen] = useState<boolean>(false);
 
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return !!localStorage.getItem(STORAGE_KEY_AUTH_TOKEN);
+    }
+    return false;
+  });
+
   const handleSaveAvatarConfig = (newConfig: CharacterAvatarConfig) => {
     setPlayer((prev) => ({
       ...prev,
       avatarConfig: newConfig,
     }));
+  };
+
+  const handleLoginSuccess = (account: PlayerAccount, token: string) => {
+    setActiveAccountId(account.id);
+    setPlayer(account.profile);
+    setIsAuthenticated(true);
+    localStorage.setItem(STORAGE_KEY_AUTH_TOKEN, token);
+    localStorage.setItem(STORAGE_KEY_ACTIVE_ID, account.id);
+  };
+
+  const handleLogOut = () => {
+    localStorage.removeItem(STORAGE_KEY_AUTH_TOKEN);
+    setIsAuthenticated(false);
   };
 
   const [activeAccountId, setActiveAccountId] = useState<string>(() => {
@@ -280,6 +302,7 @@ export default function App() {
         onOpenAccounts={() => setIsAccountsOpen(true)}
         onOpenDailyChallenge={() => setIsDailyChallengeOpen(true)}
         onOpenCustomizer={() => setIsCustomizerOpen(true)}
+        onLogOut={handleLogOut}
       />
 
       {/* Main View Container */}
@@ -417,6 +440,14 @@ export default function App() {
         onClose={() => setIsAccountsOpen(false)}
         currentPlayer={player}
         onSwitchPlayer={handleSwitchPlayer}
+        onLogOut={handleLogOut}
+        allSkins={allSkins}
+      />
+
+      {/* Mandatory Password/PIN Login Gate Portal */}
+      <LoginGateModal
+        isOpen={!isAuthenticated}
+        onLoginSuccess={handleLoginSuccess}
         allSkins={allSkins}
       />
 

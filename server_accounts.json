@@ -1,0 +1,68 @@
+[
+  {
+    "id": "acc_austin",
+    "name": "Austin",
+    "avatarId": "skin_neon_ninja",
+    "passwordHash": "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4",
+    "lastPlayed": 1792601345709,
+    "profile": {
+      "name": "Austin",
+      "level": 1,
+      "xp": 0,
+      "maxXp": 100,
+      "vCoins": 150,
+      "equippedSkinId": "skin_neon_ninja",
+      "unlockedSkinIds": [
+        "skin_neon_ninja"
+      ],
+      "highestStreak": 0,
+      "arenaVictories": 0,
+      "completedStoryNodes": [],
+      "soundEnabled": true,
+      "pinyinDefaultVisible": true,
+      "mandarinMastery": {
+        "tier": 1,
+        "tierName": "Tier 1: Initiate (基础初级 - HSK 1)",
+        "questionsAnswered": 0,
+        "correctAnswers": 0,
+        "consecutiveCorrect": 0,
+        "recentMistakes": [],
+        "masteryPoints": 0
+      }
+    },
+    "token": "a0c9008b-ab6a-4ee0-ac0c-499bb1fd2cc9"
+  },
+  {
+    "id": "acc_1792601350750_87fpp",
+    "name": "Kai",
+    "avatarId": "skin_titan_mecha",
+    "passwordHash": "c1f330d0aff31c1c87403f1e4347bcc21aff7c179908723535f2b31723702525",
+    "token": "1eae665d-79c1-44a2-8a21-2bb8a88ea34b",
+    "lastPlayed": 1792601362079,
+    "profile": {
+      "name": "Kai",
+      "level": 1,
+      "xp": 0,
+      "maxXp": 100,
+      "vCoins": 150,
+      "equippedSkinId": "skin_titan_mecha",
+      "unlockedSkinIds": [
+        "skin_titan_mecha"
+      ],
+      "highestStreak": 0,
+      "arenaVictories": 0,
+      "completedStoryNodes": [],
+      "soundEnabled": true,
+      "pinyinDefaultVisible": true,
+      "mandarinMastery": {
+        "tier": 1,
+        "tierName": "Tier 1: Initiate (基础初级 - HSK 1)",
+        "questionsAnswered": 0,
+        "correctAnswers": 0,
+        "consecutiveCorrect": 0,
+        "recentMistakes": [],
+        "masteryPoints": 0
+      }
+    }
+  }
+]

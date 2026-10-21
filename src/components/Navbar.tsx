@@ -1,7 +1,7 @@
 import React from 'react';
 import { GameView, PlayerProfile, SkinItem } from '../types/game';
 import { SkinVisual } from './SkinVisual';
-import { Volume2, VolumeX, Sparkles, Coins, Users, Swords, Trophy, Calendar, Shirt, ArrowUpRight } from 'lucide-react';
+import { Volume2, VolumeX, Sparkles, Coins, Users, Swords, Trophy, Calendar, Shirt, ArrowUpRight, LogOut, Lock } from 'lucide-react';
 
 interface NavbarProps {
   currentView: GameView;
@@ -13,6 +13,7 @@ interface NavbarProps {
   onOpenAccounts: () => void;
   onOpenDailyChallenge: () => void;
   onOpenCustomizer: () => void;
+  onLogOut: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -25,6 +26,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenAccounts,
   onOpenDailyChallenge,
   onOpenCustomizer,
+  onLogOut,
 }) => {
   const todayDateStr = new Date().toISOString().slice(0, 10);
   const hasDailyAvailable = !player.dailyChallenge || player.dailyChallenge.date !== todayDateStr || !player.dailyChallenge.completed;
@@ -109,6 +111,15 @@ export const Navbar: React.FC<NavbarProps> = ({
               </div>
               <div className="text-[9px] text-slate-400 leading-none mt-0.5">Switch Player ▾</div>
             </div>
+          </button>
+
+          {/* Lock / Log Out Button */}
+          <button
+            onClick={onLogOut}
+            className="p-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-rose-500/50 text-slate-400 hover:text-rose-400 transition-colors shadow-sm shrink-0"
+            title="Log Out & Lock Game Session (退出/锁定)"
+          >
+            <LogOut size={14} />
           </button>
 
           {/* V-Coins Counter */}
